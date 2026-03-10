@@ -9,8 +9,13 @@
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
-      "supportsTablet": true
-    },
+  "supportsTablet": true,
+  "infoPlist": {
+    "NSAppTransportSecurity": {
+      "NSAllowsArbitraryLoads": true
+    }
+  }
+},
     "android": {
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE",
@@ -22,6 +27,7 @@
       "predictiveBackGestureEnabled": false
     },
     "web": {
+       "bundler": "metro",
       "output": "static",
       "favicon": "./assets/images/favicon.png"
     },
