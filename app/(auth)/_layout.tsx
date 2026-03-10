@@ -1,12 +1,28 @@
+// app/(auth)/_layout.tsx
 import { Stack } from 'expo-router';
+import { useAuth } from "@/context/auth-context"
+import { useEffect } from 'react';
+import { router } from 'expo-router';
 
-// Use default export function directly (no const)
 export default function AuthLayout() {
+  const { user, hasCompletedOnboarding } = useAuth();
+
+  useEffect(() => {
+    // If user is already logged in, redirect appropriately
+    if (user) {
+      if (hasCompletedOnboarding) {
+        router.replace('/(dashboard)/dashboard/dashboard');
+      } else {
+        router.replace('/(onboarding)/welcome');
+      }
+    }
+  }, [user, hasCompletedOnboarding]);
+
   return (
-    <Stack>
-      <Stack.Screen name="welcome" options={{ headerShown: false }} />
-      <Stack.Screen name="sign-in" options={{ headerShown: false }} />
-      <Stack.Screen name="sign-up" options={{ headerShown: false }} />
+    <Stack screenOptions={{ headerShown: false }}>
+      <Stack.Screen name="welcome" />
+      <Stack.Screen name="sign-in" />
+      <Stack.Screen name="sign-up" />
     </Stack>
   );
 }

@@ -49,58 +49,64 @@ export default function SignIn() {
     return true;
   };
 
-  const handleSignIn = async () => {
-    if (!validateForm()) return;
+ const handleSignIn = async () => {
+  if (!validateForm()) return;
+  
+  setLoading(true);
+  setError(null);
+  
+  try {
+    console.log("🔐 Attempting login for:", formData.email);
+    const result = await directLogin(formData.email, formData.password);
     
-    setLoading(true);
-    setError(null);
-    
-    try {
-      console.log("🔐 Attempting login for:", formData.email);
-      const result = await directLogin(formData.email, formData.password);
+    if (result.success) {
+      console.log("✅ Login successful for:", formData.email);
       
-      if (result.success) {
-        console.log("✅ Login successful for:", formData.email);
-        
-        // Store user data in AsyncStorage for quick access
-        if (result.user) {
-          await AsyncStorage.setItem('user', JSON.stringify({
-            uid: result.user.uid,
-            email: result.user.email,
-            displayName: result.user.displayName,
-            emailVerified: result.user.emailVerified
-          }));
-        }
-        
-        // Navigate based on onboarding status
-        // If user came from web, they might need onboarding or go directly to dashboard
-        if (result.needsOnboarding) {
-          console.log("📱 User needs onboarding (likely from web, first app login)");
-          router.replace('/(dashboard)/dashboard/dashboard'); // Navigate to onboarding flow
-        } else {
-          console.log("📱 User has completed onboarding, going to dashboard");
-          router.replace('/(dashboard)/dashboard/dashboard');
-        }
-      } else {
-        console.log("❌ Login failed:", result.error);
-        
-        // Handle specific error messages
-        if (result.error?.includes('invalid-credential') || result.error?.includes('Invalid email or password')) {
-          setError("Invalid email or password. Please try again.");
-        } else if (result.error?.includes('user-not-found') || result.error?.includes('No account found')) {
-          setError("No account found with this email. Please sign up first.");
-        } else {
-          setError(result.error || "Sign in failed. Please try again.");
-        }
+      // Store user data in AsyncStorage with onboarding status
+      if (result.user) {
+        await AsyncStorage.setItem('user', JSON.stringify({
+          uid: result.user.uid,
+          email: result.user.email,
+          displayName: result.user.displayName,
+          emailVerified: result.user.emailVerified,
+          hasCompletedOnboarding: !result.needsOnboarding // Store onboarding status
+        }));
       }
-    } catch (error: any) {
-      console.error("❌ Login error:", error);
-      setError("An unexpected error occurred. Please try again.");
-    } finally {
-      setLoading(false);
+      
+      // Clear form
+      setFormData({ email: '', password: '' });
+      
+      // Show success message (optional)
+      Alert.alert(
+        "Success",
+        "Logged in successfully!",
+        [{ text: "OK" }]
+      );
+      
+      // DO NOT navigate here - let the AuthContext handle navigation
+      // The context will automatically redirect based on user and onboarding status
+      
+    } else {
+      console.log("❌ Login failed:", result.error);
+      
+      // Handle specific error messages
+      if (result.error?.includes('invalid-credential') || result.error?.includes('Invalid email or password')) {
+        setError("Invalid email or password. Please try again.");
+      } else if (result.error?.includes('user-not-found') || result.error?.includes('No account found')) {
+        setError("No account found with this email. Please sign up first.");
+      } else if (result.error?.includes('network')) {
+        setError("Network error. Please check your connection.");
+      } else {
+        setError(result.error || "Sign in failed. Please try again.");
+      }
     }
-  };
-
+  } catch (error: any) {
+    console.error("❌ Login error:", error);
+    setError("An unexpected error occurred. Please try again.");
+  } finally {
+    setLoading(false);
+  }
+};
 /*   const handleGoogleSignIn = async () => {
     setGoogleLoading(true);
     setError(null);

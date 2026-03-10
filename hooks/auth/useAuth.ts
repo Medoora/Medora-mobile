@@ -1,75 +1,47 @@
-/* // hooks/useAuth.ts
-import { useState, useEffect } from 'react';
-import { 
-  loginUser, 
-  signUpUser, 
-  signOutUser,
-  directLogin,
-  getCurrentUserWithData,
-  setupAuthListener,
-  type AuthUser
-} from '@/config/firebase/services/auth';
-import { User } from 'firebase/auth';
+// hooks/useAuth.ts
+import { useEffect, useState } from 'react';
+import { auth } from '@/config/firebase/config';
+import { onAuthStateChanged, User } from 'firebase/auth';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { router } from 'expo-router';
 
 export const useAuth = () => {
   const [user, setUser] = useState<User | null>(null);
-  const [authUser, setAuthUser] = useState<AuthUser | null>(null);
   const [loading, setLoading] = useState(true);
-  const [needsOnboarding, setNeedsOnboarding] = useState(false);
+  const [hasCompletedOnboarding, setHasCompletedOnboarding] = useState(false);
 
   useEffect(() => {
-    const unsubscribe = setupAuthListener(async (firebaseUser, userData) => {
-      setUser(firebaseUser);
-      setAuthUser(userData || null);
+    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
+      console.log("Auth state changed:", firebaseUser ? "Logged in" : "Logged out");
       
-      if (firebaseUser && userData) {
-        // Check onboarding status from your existing logic
-        setNeedsOnboarding(!userData.hasCompletedOnboarding);
+      setUser(firebaseUser);
+      
+      if (firebaseUser) {
+        // Check onboarding status from storage
+        const userData = await AsyncStorage.getItem('user');
+        if (userData) {
+          const parsed = JSON.parse(userData);
+          setHasCompletedOnboarding(parsed.hasCompletedOnboarding || false);
+        }
+      } else {
+        setHasCompletedOnboarding(false);
       }
       
       setLoading(false);
     });
 
-    return () => unsubscribe();
+    return unsubscribe;
   }, []);
 
-  const login = async (email: string, password: string) => {
-    setLoading(true);
-    const result = await directLogin(email, password);
-    if (result.success && result.needsOnboarding !== undefined) {
-      setNeedsOnboarding(result.needsOnboarding);
+  const navigateBasedOnAuth = () => {
+    if (!user) {
+      router.replace('/(auth)/sign-in');
+    } else if (!hasCompletedOnboarding) {
+      router.replace('/(onboarding)/welcome');
+    } else {
+      router.replace('/(dashboard)/dashboard/dashboard');
     }
-    setLoading(false);
-    return result;
-  };
+  }; 
 
-  const signUp = async (email: string, password: string, username: string) => {
-    setLoading(true);
-    const result = await signUpUser(email, password, username);
-    setLoading(false);
-    return result;
-  };
-
-  const logout = async () => {
-    setLoading(true);
-    const result = await signOutUser();
-    if (result.success) {
-      setUser(null);
-      setAuthUser(null);
-      setNeedsOnboarding(false);
-    }
-    setLoading(false);
-    return result;
-  };
-
-  return {
-    user,
-    authUser,
-    loading,
-    needsOnboarding,
-    login,
-    signUp,
-    logout,
-    isAuthenticated: !!user
-  };
-}; */
+  return { user, loading, hasCompletedOnboarding, /* navigateBasedOnAuth */ };
+};

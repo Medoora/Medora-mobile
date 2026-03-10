@@ -1,0 +1,147 @@
+// context/AuthContext.tsx
+import React, { createContext, useState, useEffect, useContext } from 'react';
+import { onAuthStateChanged, User } from 'firebase/auth';
+import { auth } from '@/config/firebase/config';
+import { doc, getDoc } from 'firebase/firestore';
+import { db } from '@/config/firebase/config';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { router } from 'expo-router';
+
+type AuthContextType = {
+  user: User | null;
+  isLoading: boolean;
+  hasCompletedOnboarding: boolean;
+  setHasCompletedOnboarding: (value: boolean) => void;
+};
+
+const AuthContext = createContext<AuthContextType>({
+  user: null,
+  isLoading: true,
+  hasCompletedOnboarding: false,
+  setHasCompletedOnboarding: () => {},
+});
+
+export const useAuth = () => useContext(AuthContext);
+
+export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
+  const [user, setUser] = useState<User | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [hasCompletedOnboarding, setHasCompletedOnboarding] = useState(false);
+
+  // Check onboarding status from Firestore
+  const checkOnboardingStatus = async (uid: string) => {
+    try {
+      console.log("🔍 Checking onboarding status for user:", uid);
+      
+      // First check Firestore (source of truth)
+      const userDoc = await getDoc(doc(db, "users", uid));
+      if (userDoc.exists()) {
+        const userData = userDoc.data();
+        const onboardingStatus = userData.hasCompletedOnboarding || false;
+        console.log("📱 Onboarding status from Firestore:", onboardingStatus);
+        
+        // Update AsyncStorage to match Firestore
+        const storedUser = await AsyncStorage.getItem('user');
+        if (storedUser) {
+          const parsed = JSON.parse(storedUser);
+          parsed.hasCompletedOnboarding = onboardingStatus;
+          await AsyncStorage.setItem('user', JSON.stringify(parsed));
+        }
+        
+        return onboardingStatus;
+      }
+      
+      // Fallback to AsyncStorage
+      const storedUser = await AsyncStorage.getItem('user');
+      if (storedUser) {
+        const parsed = JSON.parse(storedUser);
+        console.log("📱 Onboarding status from AsyncStorage:", parsed.hasCompletedOnboarding);
+        return parsed.hasCompletedOnboarding || false;
+      }
+      
+      return false;
+    } catch (error) {
+      console.log("Error checking onboarding status:", error);
+      
+      // Fallback to AsyncStorage on error
+      try {
+        const storedUser = await AsyncStorage.getItem('user');
+        if (storedUser) {
+          const parsed = JSON.parse(storedUser);
+          return parsed.hasCompletedOnboarding || false;
+        }
+      } catch (e) {}
+      
+      return false;
+    }
+  };
+
+  useEffect(() => {
+    console.log("🔐 AuthProvider mounted");
+    let mounted = true;
+
+    // Listen to Firebase auth state
+    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
+      console.log("🔥 Auth state changed:", firebaseUser ? "logged in" : "logged out");
+      
+      if (!mounted) return;
+      
+      setUser(firebaseUser);
+      
+      if (firebaseUser) {
+        // Check onboarding status from Firestore
+        const onboardingStatus = await checkOnboardingStatus(firebaseUser.uid);
+        if (mounted) {
+          setHasCompletedOnboarding(onboardingStatus);
+        }
+      } else {
+        // Clear onboarding status when logged out
+        if (mounted) {
+          setHasCompletedOnboarding(false);
+        }
+      }
+      
+      if (mounted) {
+        setIsLoading(false);
+      }
+    });
+
+    return () => {
+      mounted = false;
+      unsubscribe();
+    };
+  }, []);
+
+  // Handle navigation based on auth state
+  useEffect(() => {
+    if (!isLoading) {
+      console.log("🧭 Navigation check:", { 
+        user: !!user, 
+        hasCompletedOnboarding,
+        path: router.canGoBack() ? "can go back" : "root"
+      });
+      
+      if (!user) {
+        console.log("➡️ No user, redirecting to auth/welcome");
+        router.replace('/(auth)/welcome');
+      } else if (user && !hasCompletedOnboarding) {
+        console.log("➡️ User needs onboarding, redirecting to onboarding/welcome");
+        router.replace('/(onboarding)/welcome');
+      } else if (user && hasCompletedOnboarding) {
+        console.log("➡️ User completed onboarding, redirecting to dashboard");
+        router.replace('/(dashboard)/dashboard/dashboard');
+      }
+    }
+  }, [user, isLoading, hasCompletedOnboarding]);
+
+  return (
+    <AuthContext.Provider value={{ 
+      user, 
+      isLoading, 
+      hasCompletedOnboarding, 
+      setHasCompletedOnboarding 
+    }}>
+      {children}
+    </AuthContext.Provider>
+  );
+};
