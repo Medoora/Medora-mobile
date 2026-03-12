@@ -11,7 +11,7 @@ export default function OnboardingLayout() {
     if (!user) {
       router.replace('/(auth)/welcome');
     } else if (hasCompletedOnboarding) {
-      router.replace('/(dashboard)/dashboard/dashboard');
+      router.replace('/(dashboard)/dashboard/(tabs)');
     }
   }, [user, hasCompletedOnboarding]);
 

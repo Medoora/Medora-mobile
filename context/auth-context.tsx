@@ -133,10 +133,10 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         console.log(
           "➡️ User needs onboarding, redirecting to onboarding/welcome",
         );
-        router.replace("/(dashboard)/dashboard/dashboard");
+        router.replace("/(onboarding)/welcome");
       } else if (user && hasCompletedOnboarding) {
         console.log("➡️ User completed onboarding, redirecting to dashboard");
-        router.replace("/(dashboard)/dashboard/dashboard");
+        router.replace("/(dashboard)/dashboard/(tabs)");
       }
     }
   }, [user, isLoading, hasCompletedOnboarding]);
