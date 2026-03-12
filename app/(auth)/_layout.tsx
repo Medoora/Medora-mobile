@@ -11,7 +11,7 @@ export default function AuthLayout() {
     // If user is already logged in, redirect appropriately
     if (user) {
       if (hasCompletedOnboarding) {
-        router.replace('/(dashboard)/dashboard/dashboard');
+        router.replace('/(dashboard)/dashboard/(tabs)');
       } else {
         router.replace('/(onboarding)/welcome');
       }

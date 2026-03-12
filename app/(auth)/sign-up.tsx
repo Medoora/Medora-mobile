@@ -124,7 +124,7 @@ export default function SignUpScreen() {
           [
             { 
               text: "Continue to Onboarding", 
-              onPress: () => router.replace('/(dashboard)/dashboard/dashboard')
+              onPress: () => router.replace('/(onboarding)/welcome')
             }
           ]
         );

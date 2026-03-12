@@ -77,11 +77,11 @@ export default function SignIn() {
       setFormData({ email: '', password: '' });
       
       // Show success message (optional)
-      Alert.alert(
+     /*  Alert.alert(
         "Success",
         "Logged in successfully!",
         [{ text: "OK" }]
-      );
+      ); */
       
       // DO NOT navigate here - let the AuthContext handle navigation
       // The context will automatically redirect based on user and onboarding status
