@@ -5,15 +5,30 @@ import { useState, useRef, useCallback } from 'react';
 import { usePathname, router, Tabs } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { Platform } from 'react-native';
-
+import UploadModal from '@/components/modal/upload-modal';
 const { width } = Dimensions.get('window');
-const SIDEBAR_WIDTH = 280;
+const SIDEBAR_WIDTH = 320;
 
 export default function TabsLayout() {
   const [isSidebarVisible, setIsSidebarVisible] = useState(false);
+  const [isUploadModalOpen, setIsUploadModalOpen] = useState(false)
   const slideAnim = useRef(new Animated.Value(-SIDEBAR_WIDTH)).current;
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const pathname = usePathname();
+
+
+  const openUploadModal = useCallback(() => {
+       setIsUploadModalOpen(true)
+  }, []);
+
+  const closeUploadModal = useCallback(() => {
+    setIsUploadModalOpen(false);
+  }, []);
+
+  const handleUpload = useCallback((type: string, data: any) => {
+    console.log('Uploading:', type, data);
+    // Handle upload logic here
+  }, []);
 
   const openSidebar = useCallback(() => {
     Animated.parallel([
@@ -77,7 +92,7 @@ export default function TabsLayout() {
       <StatusBar barStyle="light-content" />
       
       {/* Main Content */}
-      <View className="flex-1">
+      <View className="flex-1 relative">
         {/* Header */}
         <SafeAreaView edges={['top', 'left', 'right']} className="bg-black">
           <View className="flex-row items-center justify-between px-4 pb-2">
@@ -201,6 +216,24 @@ export default function TabsLayout() {
             />
           </Tabs>
         </View>
+
+       {/*  upload button  */}
+     {
+      ["Dashboard", "My Drive"].includes(currentTab) && (
+        <TouchableOpacity
+         onPress={openUploadModal}
+        className='absolute bg-blue-900 bottom-28 right-6 rounded-full flex items-center justify-center p-4 z-30' > 
+        <Ionicons color={'white'} size={20} name='cloud-upload' /> 
+        </TouchableOpacity>
+      )
+    }
+
+   {/*   upload modal */}
+   <UploadModal
+    visible={isUploadModalOpen}
+     onClose={closeUploadModal}
+     onUpload={handleUpload}
+   />
       </View>
 
       {/* Overlay when sidebar is open */}
