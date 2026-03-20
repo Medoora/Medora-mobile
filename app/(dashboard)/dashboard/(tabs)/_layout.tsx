@@ -1,5 +1,5 @@
 import React from 'react';
-import { Text, ScrollView, TouchableOpacity, Animated, Dimensions, View, StatusBar } from 'react-native';
+import { Text, ScrollView, TouchableOpacity, Animated, Dimensions, View, StatusBar, Image } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useState, useRef, useCallback } from 'react';
 import { usePathname, router, Tabs } from 'expo-router';
@@ -245,15 +245,21 @@ export default function TabsLayout() {
         ]}
       >
         <SafeAreaView className="flex-1">
-          <View className="p-6">
+          <View className="px-4 py-2">
             <View className="flex-row justify-between items-center mb-8">
-              <Text className="text-white text-2xl font-bold">Mediorz</Text>
+             <View className='flex-row items-center '>
+               <Image
+               source={require("@/assets/logo/logo.png")}
+               className='w-14 h-14'
+              />
+              <Text className="text-white text-xl font-bold -ml-2">Medora</Text> 
+             </View>
               <TouchableOpacity onPress={closeSidebar} className="w-10 h-10 items-center justify-center">
                 <Ionicons name="close" size={24} color="#a1a1aa" />
               </TouchableOpacity>
             </View>
             
-            <ScrollView showsVerticalScrollIndicator={false} className="flex-1">
+           
               {/* Dashboard Tab */}
               <TouchableOpacity 
                 onPress={() => handleNavigation('/')}
@@ -350,7 +356,7 @@ export default function TabsLayout() {
                   Settings
                 </Text>
               </TouchableOpacity>
-            </ScrollView>
+           
 
             {/* Storage Info */}
             <View className="mt-auto pt-6">
