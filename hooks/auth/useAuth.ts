@@ -39,7 +39,7 @@ export const useAuth = () => {
     } else if (!hasCompletedOnboarding) {
       router.replace('/(onboarding)/welcome');
     } else {
-      router.replace('/(dashboard)/dashboard/dashboard');
+      router.replace('/(dashboard)/dashboard/(tabs)');
     }
   }; 
 

@@ -19,6 +19,7 @@
     "babel-preset-expo": "^55.0.10",
     "expo": "~54.0.33",
     "expo-av": "~16.0.8",
+    "expo-blur": "^55.0.10",
     "expo-checkbox": "~5.0.8",
     "expo-constants": "~18.0.13",
     "expo-font": "~14.0.11",
