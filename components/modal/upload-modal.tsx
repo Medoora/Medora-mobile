@@ -1,16 +1,21 @@
-import React from 'react';
-import { View, Text, TouchableOpacity, Animated, Dimensions, ScrollView, TextInput, Modal, Pressable, Alert, Image } from 'react-native';
+import { saveDocumentMetadata } from "@/config/firebase/services/documents";
+import { useAuth } from '@/context/auth-context';
+import { extractFileInfo, uploadToCloudinary } from '@/lib/cloudinary/service';
 import { Ionicons } from '@expo/vector-icons';
 import { CameraView, useCameraPermissions } from 'expo-camera';
+import * as DocumentPicker from 'expo-document-picker';
 import * as ImagePicker from 'expo-image-picker';
 import * as MediaLibrary from 'expo-media-library';
+import React from 'react';
+import { ActivityIndicator, Alert, Animated, Dimensions, Modal, Pressable, ScrollView, Text, TextInput, TouchableOpacity, View } from 'react-native';
 
 const { width, height } = Dimensions.get('window');
 
 interface UploadModalProps {
-  visible: boolean;
+  visible: boolean; 
   onClose: () => void;
-  onUpload: (type: string, data: any) => void;
+  onUpload?: (type: string, data: any) => void;
+  onUploadSuccess?: (document: any) => void;
 }
 
 const DOCUMENT_CATEGORIES = [
@@ -39,7 +44,7 @@ const DOCUMENT_CATEGORIES = [
   { value: 'other', label: 'Other Medical Document', group: 'Documents', fileTypes: ['image', 'pdf', 'document', 'spreadsheet', 'text'] },
 ];
 
-export default function UploadModal({ visible, onClose, onUpload }: UploadModalProps) {
+export default function UploadModal({ visible, onClose, onUpload, onUploadSuccess }: UploadModalProps) {
   const [uploadType, setUploadType] = React.useState('file');
   const [fileName, setFileName] = React.useState('');
   const [selectedCategory, setSelectedCategory] = React.useState('');
@@ -48,11 +53,14 @@ export default function UploadModal({ visible, onClose, onUpload }: UploadModalP
   const [description, setDescription] = React.useState('');
   const [isDropdownOpen, setIsDropdownOpen] = React.useState(false);
   const [showCamera, setShowCamera] = React.useState(false);
-  const [selectedImage, setSelectedImage] = React.useState<string | null>(null);
+  const [selectedFile, setSelectedFile] = React.useState<{ uri: string; name: string; type: string; size?: number } | null>(null);
+  const [isUploading, setIsUploading] = React.useState(false);
+  const [uploadProgress, setUploadProgress] = React.useState(0);
   const [cameraPermission, requestCameraPermission] = useCameraPermissions();
   const [mediaPermission, requestMediaPermission] = MediaLibrary.usePermissions();
   const modalSlideAnim = React.useRef(new Animated.Value(height)).current;
-
+  const { user } = useAuth();
+  
   React.useEffect(() => {
     if (visible) {
       Animated.timing(modalSlideAnim, {
@@ -67,7 +75,9 @@ export default function UploadModal({ visible, onClose, onUpload }: UploadModalP
         useNativeDriver: true,
       }).start();
       setShowCamera(false);
-      setSelectedImage(null);
+      setSelectedFile(null);
+      setIsUploading(false);
+      setUploadProgress(0);
     }
   }, [visible]);
 
@@ -80,7 +90,7 @@ export default function UploadModal({ visible, onClose, onUpload }: UploadModalP
       onClose();
       resetForm();
       setShowCamera(false);
-      setSelectedImage(null);
+      setSelectedFile(null);
     });
   };
 
@@ -94,29 +104,90 @@ export default function UploadModal({ visible, onClose, onUpload }: UploadModalP
     setIsDropdownOpen(false);
   };
 
-  const handleFilePick = async () => {
-    try {
-      const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ImagePicker.MediaTypeOptions.Images,
-        allowsEditing: true,
-        quality: 1,
-        allowsMultipleSelection: false,
-      });
+const handleFilePick = async () => {
+  try {
+    // Show action sheet to choose between Photos and Files
+    Alert.alert(
+      'Select Source',
+      'Choose where to pick your file from',
+      [
+        {
+          text: '📸 Photos Library',
+          onPress: async () => {
+            try {
+              const result = await ImagePicker.launchImageLibraryAsync({
+                mediaTypes: ImagePicker.MediaTypeOptions.All, // Use MediaTypeOptions instead of MediaType
+                allowsEditing: true,
+                quality: 1,
+                allowsMultipleSelection: false,
+              });
 
-      if (!result.canceled) {
-        const selectedFile = result.assets[0];
-        setSelectedImage(selectedFile.uri);
-        
-        // Auto-fill filename if empty
-        if (!fileName) {
-          const autoName = selectedFile.fileName || `image_${Date.now()}`;
-          setFileName(autoName);
-        }
-      }
-    } catch (error) {
-      Alert.alert('Error', 'Failed to pick file');
-    }
-  };
+              if (!result.canceled) {
+                const selected = result.assets[0];
+                setSelectedFile({
+                  uri: selected.uri,
+                  name: selected.fileName || `image_${Date.now()}.jpg`,
+                  type: selected.mimeType || 'image/jpeg',
+                  size: selected.fileSize,
+                });
+                
+                if (!fileName) {
+                  setFileName(selected.fileName || `image_${Date.now()}.jpg`);
+                }
+              }
+            } catch (error) {
+              console.error('Photo pick error:', error);
+              Alert.alert('Error', 'Failed to pick from photos');
+            }
+          },
+        },
+        {
+          text: '📄 Files (PDF, DOC, XLS, etc.)',
+          onPress: async () => {
+            try {
+              const result = await DocumentPicker.getDocumentAsync({
+                type: [
+                  'application/pdf',
+                  'application/msword',
+                  'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+                  'application/vnd.ms-excel',
+                  'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+                  'text/plain',
+                ],
+                copyToCacheDirectory: true,
+              });
+
+              if (result.canceled === false) {
+                const selected = result.assets[0];
+                setSelectedFile({
+                  uri: selected.uri,
+                  name: selected.name,
+                  type: selected.mimeType || 'application/octet-stream',
+                  size: selected.size,
+                });
+                
+                if (!fileName) {
+                  setFileName(selected.name);
+                }
+              }
+            } catch (error) {
+              console.error('File pick error:', error);
+              Alert.alert('Error', 'Failed to pick file');
+            }
+          },
+        },
+        {
+          text: 'Cancel',
+          style: 'cancel',
+        },
+      ],
+      { cancelable: true }
+    );
+  } catch (error) {
+    console.error('File pick error:', error);
+    Alert.alert('Error', 'Failed to pick file');
+  }
+};
 
   const handleCameraOpen = async () => {
     if (!cameraPermission?.granted) {
@@ -142,13 +213,15 @@ export default function UploadModal({ visible, onClose, onUpload }: UploadModalP
     if (cameraRef) {
       try {
         const photo = await cameraRef.takePictureAsync();
-        setSelectedImage(photo.uri);
+        setSelectedFile({
+          uri: photo.uri,
+          name: `photo_${Date.now()}.jpg`,
+          type: 'image/jpeg',
+        });
         setShowCamera(false);
         
-        // Auto-fill filename if empty
         if (!fileName) {
-          const autoName = `photo_${Date.now()}.jpg`;
-          setFileName(autoName);
+          setFileName(`photo_${Date.now()}.jpg`);
         }
       } catch (error) {
         Alert.alert('Error', 'Failed to take picture');
@@ -156,8 +229,8 @@ export default function UploadModal({ visible, onClose, onUpload }: UploadModalP
     }
   };
 
-  const handleConfirmUpload = () => {
-    if (!selectedImage) {
+  const handleUpload = async () => {
+    if (!selectedFile) {
       Alert.alert('No File', 'Please select a file first');
       return;
     }
@@ -167,23 +240,93 @@ export default function UploadModal({ visible, onClose, onUpload }: UploadModalP
       return;
     }
 
-    const selectedCategoryData = DOCUMENT_CATEGORIES.find(cat => cat.value === selectedCategory);
-    onUpload(uploadType, {
-      uri: selectedImage,
-      fileName: fileName || `upload_${Date.now()}`,
-      type: 'image',
-      category: selectedCategory,
-      categoryLabel: selectedCategoryData?.label,
-      group: selectedCategoryData?.group,
-      isStarred,
-      tags: tags.split(',').map(tag => tag.trim()).filter(tag => tag),
-      description,
-    });
-    handleClose();
+    if (!user) {
+      Alert.alert('Error', 'You must be logged in to upload');
+      return;
+    }
+
+    setIsUploading(true);
+    setUploadProgress(0);
+
+    try {
+      // Upload to Cloudinary
+      const cloudinaryResponse = await uploadToCloudinary(selectedFile.uri, user.uid, {
+        generateThumbnail: true,
+        patientId: user.uid,
+        tags: tags.split(',').map(tag => tag.trim()).filter(tag => tag),
+        onProgress: (progress) => setUploadProgress(progress),
+        fileType: selectedFile.type,
+      });
+
+      if (!cloudinaryResponse) {
+        throw new Error('Cloudinary upload failed');
+      }
+
+      const fileInfo = extractFileInfo(cloudinaryResponse);
+      const selectedCategoryData = DOCUMENT_CATEGORIES.find(cat => cat.value === selectedCategory);
+
+      // Save metadata to Firebase
+      const documentData = {
+        userId: user.uid,
+        userEmail: user.email,
+        patientId: user.uid,
+        documentName: fileName || selectedCategoryData?.label || 'Untitled',
+        documentDate: new Date().toISOString().split('T')[0],
+        category: selectedCategory,
+        categoryLabel: selectedCategoryData?.label || '',
+        description: description,
+        tags: tags.split(',').map(tag => tag.trim()).filter(tag => tag),
+        fileInfo: {
+          name: selectedFile.name,
+          size: selectedFile.size || fileInfo.bytes,
+          type: selectedFile.type,
+          fileTypeCategory: selectedCategoryData?.group === 'Scan Reports' ? 'image' : 'document'
+        },
+        cloudinary: {
+          publicId: fileInfo.publicId,
+          url: fileInfo.url,
+          thumbnailUrl: fileInfo.thumbnailUrl,
+          format: fileInfo.format,
+          bytes: fileInfo.bytes,
+          originalFilename: fileInfo.originalFilename
+        },
+        isStarred: isStarred
+      };
+
+      const documentId = await saveDocumentMetadata(documentData);
+      
+      if (onUpload) {
+        onUpload(uploadType, {
+          uri: selectedFile.uri,
+          fileName: fileName || selectedFile.name,
+          type: selectedFile.type,
+          category: selectedCategory,
+          categoryLabel: selectedCategoryData?.label,
+          group: selectedCategoryData?.group,
+          isStarred,
+          tags: tags.split(',').map(tag => tag.trim()).filter(tag => tag),
+          description,
+        });
+      }
+      
+      if (onUploadSuccess) {
+        onUploadSuccess({ id: documentId, ...documentData });
+      }
+      
+      Alert.alert('Success', 'File uploaded successfully!');
+      handleClose();
+      
+    } catch (error) {
+      console.error('Upload error:', error);
+      Alert.alert('Error', 'Failed to upload file. Please try again.');
+    } finally {
+      setIsUploading(false);
+      setUploadProgress(0);
+    }
   };
 
-  const removeSelectedImage = () => {
-    setSelectedImage(null);
+  const removeSelectedFile = () => {
+    setSelectedFile(null);
     setFileName('');
   };
 
@@ -218,7 +361,6 @@ export default function UploadModal({ visible, onClose, onUpload }: UploadModalP
             ref={(ref) => { cameraRef = ref; }}
           >
             <View className="flex-1 bg-transparent">
-              {/* Camera Header */}
               <View className="flex-row justify-between items-center p-5 pt-12">
                 <TouchableOpacity onPress={() => setShowCamera(false)}>
                   <Ionicons name="close" size={28} color="white" />
@@ -227,7 +369,6 @@ export default function UploadModal({ visible, onClose, onUpload }: UploadModalP
                 <View style={{ width: 28 }} />
               </View>
               
-              {/* Camera Controls */}
               <View className="absolute bottom-10 left-0 right-0 flex-row justify-center items-center gap-8">
                 <TouchableOpacity
                   onPress={() => handleTakePicture(cameraRef)}
@@ -263,7 +404,6 @@ export default function UploadModal({ visible, onClose, onUpload }: UploadModalP
           }}
           className="bg-neutral-900 rounded-t-3xl"
         >
-          {/* Modal Header */}
           <View className="flex-row justify-between items-center p-5 border-b border-neutral-800">
             <Text className="text-white text-xl font-semibold">Upload Medical File</Text>
             <TouchableOpacity onPress={handleClose}>
@@ -271,7 +411,6 @@ export default function UploadModal({ visible, onClose, onUpload }: UploadModalP
             </TouchableOpacity>
           </View>
 
-          {/* Modal Content */}
           <ScrollView 
             showsVerticalScrollIndicator={false} 
             className="p-5"
@@ -300,25 +439,30 @@ export default function UploadModal({ visible, onClose, onUpload }: UploadModalP
               </TouchableOpacity>
             </View>
 
-            {/* Image Preview Section */}
-            {selectedImage ? (
+            {/* File Preview Section */}
+            {selectedFile ? (
               <View className="mb-5">
-                <Text className="text-neutral-400 text-sm mb-2">Preview</Text>
-                <View className="relative">
-                  <Image 
-                    source={{ uri: selectedImage }}
-                    className="w-full h-48 rounded-xl"
-                    resizeMode="cover"
+                <Text className="text-neutral-400 text-sm mb-2">Selected File</Text>
+                <View className="relative bg-neutral-800 rounded-xl p-4 flex-row items-center">
+                  <Ionicons 
+                    name={selectedFile.type?.startsWith('image/') ? "image-outline" : "document-text-outline"} 
+                    size={32} 
+                    color="#3b82f6" 
                   />
-                  <TouchableOpacity
-                    onPress={removeSelectedImage}
-                    className="absolute top-2 right-2 bg-black/50 rounded-full p-2"
-                  >
-                    <Ionicons name="close" size={20} color="white" />
-                  </TouchableOpacity>
-                  <View className="absolute bottom-2 left-2 bg-black/50 px-2 py-1 rounded">
-                    <Text className="text-white text-xs">Selected</Text>
+                  <View className="flex-1 ml-3">
+                    <Text className="text-white font-medium" numberOfLines={1}>
+                      {selectedFile.name}
+                    </Text>
+                    <Text className="text-neutral-400 text-xs">
+                      {selectedFile.size ? `${(selectedFile.size / 1024).toFixed(2)} KB` : 'Unknown size'}
+                    </Text>
                   </View>
+                  <TouchableOpacity
+                    onPress={removeSelectedFile}
+                    className="bg-black/50 rounded-full p-2"
+                  >
+                    <Ionicons name="close" size={18} color="white" />
+                  </TouchableOpacity>
                 </View>
               </View>
             ) : (
@@ -335,7 +479,7 @@ export default function UploadModal({ visible, onClose, onUpload }: UploadModalP
                   {uploadType === 'file' ? 'Tap to select a file' : 'Tap to take a photo'}
                 </Text>
                 <Text className="text-neutral-500 text-xs mt-1">
-                  {uploadType === 'file' ? 'Supports images, PDFs, and documents' : 'Take a photo of your medical document'}
+                  {uploadType === 'file' ? 'Supports images, PDFs, Word, Excel, and more' : 'Take a photo of your medical document'}
                 </Text>
               </TouchableOpacity>
             )}
@@ -445,21 +589,44 @@ export default function UploadModal({ visible, onClose, onUpload }: UploadModalP
               />
             </View>
 
-            {/* Confirm Upload Button */}
+            {/* Upload Progress */}
+            {isUploading && (
+              <View className="mb-4">
+                <View className="flex-row justify-between mb-2">
+                  <Text className="text-neutral-400 text-sm">Uploading to Cloud...</Text>
+                  <Text className="text-blue-500 text-sm">{Math.round(uploadProgress)}%</Text>
+                </View>
+                <View className="h-2 bg-neutral-800 rounded-full overflow-hidden">
+                  <View className="h-full bg-blue-500 rounded-full" style={{ width: `${uploadProgress}%` }} />
+                </View>
+              </View>
+            )}
+
+            {/* Upload Button */}
             <TouchableOpacity
-              onPress={handleConfirmUpload}
-              className={`py-4 rounded-xl mb-3 ${selectedImage ? 'bg-blue-500' : 'bg-neutral-700'}`}
-              disabled={!selectedImage}
+              onPress={handleUpload}
+              disabled={!selectedFile || isUploading}
+              className={`py-4 rounded-xl mb-3 ${selectedFile && !isUploading ? 'bg-blue-500' : 'bg-neutral-700'}`}
             >
-              <Text className={`text-center font-semibold text-base ${selectedImage ? 'text-white' : 'text-neutral-500'}`}>
-                Confirm Upload
-              </Text>
+              {isUploading ? (
+                <View className="flex-row items-center justify-center gap-2">
+                  <ActivityIndicator color="white" size="small" />
+                  <Text className="text-white text-center font-semibold text-base">
+                    Uploading...
+                  </Text>
+                </View>
+              ) : (
+                <Text className={`text-center font-semibold text-base ${selectedFile ? 'text-white' : 'text-neutral-500'}`}>
+                  Upload to Cloud
+                </Text>
+              )}
             </TouchableOpacity>
 
             {/* Cancel Button */}
             <TouchableOpacity
               onPress={handleClose}
               className="py-3 rounded-xl mb-4"
+              disabled={isUploading}
             >
               <Text className="text-neutral-400 text-center">
                 Cancel
