@@ -1,11 +1,11 @@
-import React from 'react';
-import { Text, ScrollView, TouchableOpacity, Animated, Dimensions, View, StatusBar, Image } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { useState, useRef, useCallback } from 'react';
-import { usePathname, router, Tabs } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
-import { Platform } from 'react-native';
 import UploadModal from '@/components/modal/upload-modal';
+import { Ionicons } from '@expo/vector-icons';
+import AntDesign from '@expo/vector-icons/AntDesign';
+import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
+import { Tabs, usePathname } from 'expo-router';
+import React, { useCallback, useRef, useState } from 'react';
+import { Animated, Dimensions, Image, Platform, StatusBar, Text, TouchableOpacity, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 const { width } = Dimensions.get('window');
 const SIDEBAR_WIDTH = 320;
 
@@ -25,10 +25,10 @@ export default function TabsLayout() {
     setIsUploadModalOpen(false);
   }, []);
 
-  const handleUpload = useCallback((type: string, data: any) => {
-    console.log('Uploading:', type, data);
-    // Handle upload logic here
-  }, []);
+const handleUpload = (document: any) => {
+  console.log('Uploaded document:', document);
+  // Handle the uploaded document (e.g., refresh list, show notification)
+};
 
   const openSidebar = useCallback(() => {
     Animated.parallel([
@@ -97,14 +97,14 @@ export default function TabsLayout() {
         <SafeAreaView edges={['top', 'left', 'right']} className="bg-black">
           <View className="flex-row items-center justify-between px-4 pb-2">
             <TouchableOpacity onPress={toggleSidebar} className="w-10 h-10 items-center justify-center">
-              <Ionicons name="menu-outline" size={24} color="white" />
+              <AntDesign name="align-left" size={20} color="white" />
             </TouchableOpacity>
             
             <Text className="text-white text-lg font-semibold">{currentTab}</Text>
             
             {currentTab === 'Dashboard' ? (
               <TouchableOpacity onPress={() => console.log('Filter')} className="w-10 h-10 items-center justify-center">
-                <Ionicons name="options-outline" size={22} color="white" />
+             <MaterialCommunityIcons name="robot-love-outline" size={24} color="white" />
               </TouchableOpacity>
             ) : (
               <View className="w-10 h-10" />
@@ -232,7 +232,7 @@ export default function TabsLayout() {
    <UploadModal
     visible={isUploadModalOpen}
      onClose={closeUploadModal}
-     onUpload={handleUpload}
+     onUploadSuccess={handleUpload}
    />
       </View>
 
