@@ -1,6 +1,7 @@
 import { Ionicons } from "@expo/vector-icons";
 import DateTimePicker from "@react-native-community/datetimepicker";
-import { useRef, useState } from "react";
+import { Timestamp } from "firebase/firestore";
+import { useEffect, useRef, useState } from "react";
 import {
   Animated,
   Text,
@@ -9,8 +10,22 @@ import {
   View,
 } from "react-native";
 
+import { useAuth } from "@/hooks/auth/useAuth";
+
+import {
+  createReminder,
+  deleteReminder,
+  getUserReminders,
+  updateReminderStatus,
+} from "@/config/firebase/services/reminder/service";
+
 export default function ReminderScreen() {
   const scrollY = useRef(new Animated.Value(0)).current;
+
+  const { user } = useAuth();
+
+  const [reminders, setReminders] = useState<any[]>([]);
+  const [loading, setLoading] = useState(false);
 
   const [activeTab, setActiveTab] = useState("active");
 
@@ -25,9 +40,59 @@ export default function ReminderScreen() {
   const [showDate, setShowDate] = useState(false);
   const [showTime, setShowTime] = useState(false);
 
-  const reminders: any[] = [];
+  // 🔥 FETCH
+  useEffect(() => {
+    if (!user) return;
 
-  const filtered = reminders.filter((r) => r.status === activeTab);
+    const load = async () => {
+      const data = await getUserReminders(user.uid);
+      setReminders(data);
+    };
+
+    load();
+  }, [user]);
+
+  // 🔥 SAVE
+  const handleSave = async () => {
+    if (!user || !title || !doctor || !date || !time) return;
+
+    setLoading(true);
+
+    const appointmentDate = new Date(
+      date.setHours(time.getHours(), time.getMinutes()),
+    );
+
+    const sendAt = new Date(
+      appointmentDate.getTime() - Number(reminderBefore) * 60000,
+    );
+
+    await createReminder({
+      userId: user.uid,
+      userEmail: user.email,
+      title,
+      doctor,
+      notes,
+      appointmentDate: Timestamp.fromDate(appointmentDate),
+      reminderBeforeMinutes: Number(reminderBefore),
+      sendAt: Timestamp.fromDate(sendAt),
+    });
+
+    const updated = await getUserReminders(user.uid);
+    setReminders(updated);
+
+    setTitle("");
+    setDoctor("");
+    setNotes("");
+    setReminderBefore("30");
+
+    setLoading(false);
+  };
+
+  const filtered = reminders.filter((r) => {
+    if (activeTab === "active") return r.status === "active";
+    if (activeTab === "completed") return r.status === "completed";
+    if (activeTab === "missed") return r.status === "missed";
+  });
 
   const formatDate = (d: Date | null) =>
     d ? d.toLocaleDateString() : "dd-mm-yyyy";
@@ -67,7 +132,6 @@ export default function ReminderScreen() {
             Set your next appointment alert.
           </Text>
 
-          {/* Title */}
           <Text className="text-neutral-300 text-sm mb-1">Title *</Text>
           <TextInput
             placeholder="e.g. MRI Scan"
@@ -77,7 +141,6 @@ export default function ReminderScreen() {
             className="bg-neutral-800 text-white px-4 py-3 rounded-xl mb-4"
           />
 
-          {/* Doctor */}
           <Text className="text-neutral-300 text-sm mb-1">
             Doctor / Hospital *
           </Text>
@@ -89,7 +152,6 @@ export default function ReminderScreen() {
             className="bg-neutral-800 text-white px-4 py-3 rounded-xl mb-4"
           />
 
-          {/* Date + Time */}
           <View className="flex-row gap-3 mb-4">
             <TouchableOpacity
               onPress={() => setShowDate(true)}
@@ -108,7 +170,6 @@ export default function ReminderScreen() {
             </TouchableOpacity>
           </View>
 
-          {/* Pickers */}
           {showDate && (
             <DateTimePicker
               value={date || new Date()}
@@ -133,7 +194,6 @@ export default function ReminderScreen() {
             />
           )}
 
-          {/* Reminder Before */}
           <Text className="text-neutral-300 text-sm mb-1">
             Reminder Before (minutes) *
           </Text>
@@ -144,7 +204,6 @@ export default function ReminderScreen() {
             className="bg-neutral-800 text-white px-4 py-3 rounded-xl mb-4"
           />
 
-          {/* Notes */}
           <Text className="text-neutral-300 text-sm mb-1">
             Notes (Optional)
           </Text>
@@ -157,9 +216,13 @@ export default function ReminderScreen() {
             className="bg-neutral-800 text-white px-4 py-3 rounded-xl mb-5"
           />
 
-          {/* Button */}
-          <TouchableOpacity className="bg-white py-3 rounded-xl items-center">
-            <Text className="text-black font-medium">Save Reminder</Text>
+          <TouchableOpacity
+            onPress={handleSave}
+            className="bg-white py-3 rounded-xl items-center"
+          >
+            <Text className="text-black font-medium">
+              {loading ? "Saving..." : "Save Reminder"}
+            </Text>
           </TouchableOpacity>
         </View>
 
@@ -180,7 +243,7 @@ export default function ReminderScreen() {
           ))}
         </View>
 
-        {/* REMINDER LIST */}
+        {/* LIST */}
         <View className="mt-2">
           {filtered.length === 0 ? (
             <View className="bg-neutral-900 p-8 rounded-2xl border border-neutral-800 items-center">
@@ -225,14 +288,12 @@ export default function ReminderScreen() {
                   key={item.id}
                   className={`bg-neutral-900 p-5 rounded-2xl border ${borderColor} mb-4`}
                 >
-                  {/* TOP ROW */}
                   <View className="flex-row justify-between items-start">
                     <View className="flex-1 pr-3">
                       <Text className="text-white font-semibold text-base">
                         {item.title}
                       </Text>
 
-                      {/* DOCTOR */}
                       {item.doctor && (
                         <Text className="text-neutral-400 text-xs mt-1">
                           {item.doctor}
@@ -240,7 +301,6 @@ export default function ReminderScreen() {
                       )}
                     </View>
 
-                    {/* BADGE */}
                     <View className={`px-2 py-1 rounded-md ${badgeColor}`}>
                       <Text className="text-xs font-medium">
                         {isToday
@@ -252,7 +312,6 @@ export default function ReminderScreen() {
                     </View>
                   </View>
 
-                  {/* DATE */}
                   <View className="flex-row items-center mt-3">
                     <Ionicons
                       name="calendar-outline"
@@ -264,16 +323,22 @@ export default function ReminderScreen() {
                     </Text>
                   </View>
 
-                  {/* NOTES */}
                   {item.notes && (
                     <Text className="text-neutral-500 text-xs mt-3">
                       {item.notes}
                     </Text>
                   )}
 
-                  {/* ACTIONS */}
                   <View className="flex-row justify-between mt-5">
-                    <TouchableOpacity className="flex-1 border border-neutral-700 py-2 rounded-lg mr-2 items-center">
+                    <TouchableOpacity
+                      onPress={async () => {
+                        if (!user) return;
+                        await updateReminderStatus(item.id, "completed");
+                        const updated = await getUserReminders(user.uid);
+                        setReminders(updated);
+                      }}
+                      className="flex-1 border border-neutral-700 py-2 rounded-lg mr-2 items-center"
+                    >
                       <View className="flex-row items-center">
                         <Ionicons
                           name="checkmark-circle-outline"
@@ -286,7 +351,15 @@ export default function ReminderScreen() {
                       </View>
                     </TouchableOpacity>
 
-                    <TouchableOpacity className="flex-1 bg-red-500 py-2 rounded-lg ml-2 items-center">
+                    <TouchableOpacity
+                      onPress={async () => {
+                        if (!user) return;
+                        await deleteReminder(item.id);
+                        const updated = await getUserReminders(user.uid);
+                        setReminders(updated);
+                      }}
+                      className="flex-1 bg-red-500 py-2 rounded-lg ml-2 items-center"
+                    >
                       <View className="flex-row items-center">
                         <Ionicons name="trash-outline" size={16} color="#fff" />
                         <Text className="text-white text-xs ml-1">Delete</Text>
