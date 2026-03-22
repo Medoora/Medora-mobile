@@ -64,11 +64,20 @@ export default function MyDriveScreen() {
         if (showLoading) setLoading(true);
         const documents = await getUserDocuments(user.uid);
 
-        const starredDocs = documents.filter(
-          (doc: any) => doc.isStarred === true,
-        );
+        // sort by latest uploaded FIRST
+        const sortedDocs = documents.sort((a: any, b: any) => {
+          const dateA = a.uploadedAt?.toDate
+            ? a.uploadedAt.toDate()
+            : new Date(a.uploadedAt);
 
-        setFiles(starredDocs);
+          const dateB = b.uploadedAt?.toDate
+            ? b.uploadedAt.toDate()
+            : new Date(b.uploadedAt);
+
+          return dateB.getTime() - dateA.getTime();
+        });
+
+        setFiles(sortedDocs);
       } catch (error) {
         console.error("Error fetching documents:", error);
       } finally {
@@ -425,15 +434,19 @@ export default function MyDriveScreen() {
             ))
           ) : (
             <View className="items-center py-12">
-              <Ionicons name="folder-open-outline" size={64} color="#4b5563" />
-              <Text className="text-neutral-400 text-lg font-medium mt-4">
-                No files found
-              </Text>
-              <Text className="text-neutral-500 text-center mt-2">
-                {searchQuery
-                  ? "Try adjusting your search"
-                  : "Upload your first file to get started"}
-              </Text>
+              <View className="items-center py-12">
+                <Ionicons name="time-outline" size={64} color="#4b5563" />
+
+                <Text className="text-neutral-400 text-lg font-medium mt-4">
+                  No recent files
+                </Text>
+
+                <Text className="text-neutral-500 text-center mt-2 px-6">
+                  {searchQuery
+                    ? "No files match your search"
+                    : "Files you open will appear here"}
+                </Text>
+              </View>
             </View>
           )}
         </View>

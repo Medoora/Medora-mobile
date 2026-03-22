@@ -394,7 +394,7 @@ export default function TabsLayout() {
 
               <TouchableOpacity
                 onPress={() =>
-                  handleNavigation("/(dashboard)/dashboard/(tabs)/recent")
+                  handleNavigation("/(dashboard)/dashboard/Recent")
                 }
                 className="flex-row items-center px-4 py-3 rounded-xl mb-2"
               >
