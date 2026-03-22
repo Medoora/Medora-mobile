@@ -180,6 +180,7 @@ export default function TabsLayout() {
             <Tabs.Screen
               name='mydrive'
               options={{
+                
                 tabBarIcon: ({ color, focused }) => (
                   <View className="items-center">
                     <Ionicons 
@@ -190,6 +191,7 @@ export default function TabsLayout() {
                   </View>
                 ),
               }}
+              initialParams={{ refreshTrigger: Date.now() }}
             />
 
             <Tabs.Screen
@@ -425,7 +427,7 @@ export default function TabsLayout() {
             </View>
 
             {/* Storage Info & Sign Out */}
-            <View className="mt-auto pt-6">
+            <View className="">
               <View className="bg-neutral-900 p-4 rounded-xl mb-4">
                 <Text className="text-neutral-400 text-xs mb-1">Storage</Text>
                 <Text className="text-white text-sm font-medium">0 Bytes / 500 MB</Text>

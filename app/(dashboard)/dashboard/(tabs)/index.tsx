@@ -4,7 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Animated, Image, RefreshControl, Text, TouchableOpacity, View } from 'react-native';
-
+import { fileEvents } from "../../../../utils/events";
 export default function HomeScreen() {
   const [stats, setStats] = useState({
     totalDocuments: 0,
@@ -16,29 +16,29 @@ export default function HomeScreen() {
   const [weeklyData, setWeeklyData] = useState<number[]>([0, 0, 0, 0, 0, 0, 0]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [isRefreshingData, setIsRefreshingData] = useState(false);
   const scrollY = useRef(new Animated.Value(0)).current;
   const { user } = useAuth();
 
   // Get day index (0 = Monday, 6 = Sunday)
   const getDayIndex = (date: Date): number => {
-    const day = date.getDay(); // 0 = Sunday, 1 = Monday, ...
-    return day === 0 ? 6 : day - 1; // Convert to Monday-based index
+    const day = date.getDay();
+    return day === 0 ? 6 : day - 1;
   };
 
   // Calculate weekly upload counts
   const calculateWeeklyData = (files: any[]) => {
-    const counts = [0, 0, 0, 0, 0, 0, 0]; // Mon to Sun
+    const counts = [0, 0, 0, 0, 0, 0, 0];
     
     const today = new Date();
     const startOfWeek = new Date(today);
-    startOfWeek.setDate(today.getDate() - today.getDay() + (today.getDay() === 0 ? -6 : 1)); // Get Monday of current week
+    startOfWeek.setDate(today.getDate() - today.getDay() + (today.getDay() === 0 ? -6 : 1));
     
     files.forEach(file => {
       if (!file.uploadedAt) return;
       
       const uploadDate = file.uploadedAt.toDate ? file.uploadedAt.toDate() : new Date(file.uploadedAt);
       
-      // Only count files from current week
       if (uploadDate >= startOfWeek) {
         const dayIndex = getDayIndex(uploadDate);
         counts[dayIndex]++;
@@ -48,11 +48,12 @@ export default function HomeScreen() {
     return counts;
   };
 
-  const fetchDashboardData = useCallback(async () => {
+  const fetchDashboardData = useCallback(async (showLoading = true) => {
     if (!user?.uid) return;
     
     try {
-      setLoading(true);
+      if (showLoading) setLoading(true);
+      setIsRefreshingData(true);
       
       // Fetch statistics
       const statistics = await getDocumentStatistics(user.uid);
@@ -72,16 +73,32 @@ export default function HomeScreen() {
     } finally {
       setLoading(false);
       setRefreshing(false);
+      setIsRefreshingData(false);
     }
   }, [user?.uid]);
 
   useEffect(() => {
-    fetchDashboardData();
+    fetchDashboardData(true);
   }, [fetchDashboardData]);
+
+  // Listen for upload events to refresh dashboard
+  useEffect(() => {
+    const handleUploadComplete = () => {
+      console.log('Upload detected, refreshing dashboard...');
+      fetchDashboardData(false);
+    };
+    
+    fileEvents.on('uploadComplete', handleUploadComplete);
+    
+    return () => {
+      fileEvents.off('uploadComplete', handleUploadComplete);
+    };
+  }, [fetchDashboardData]);
+  console.log()
 
   const onRefresh = useCallback(() => {
     setRefreshing(true);
-    fetchDashboardData();
+    fetchDashboardData(false);
   }, [fetchDashboardData]);
 
   const formatFileSize = (bytes: number) => {
@@ -104,13 +121,8 @@ export default function HomeScreen() {
   };
 
   const getStoragePercentage = () => {
-    const totalStorageLimit = 500 * 1024 * 1024; // 500 MB in bytes
+    const totalStorageLimit = 500 * 1024 * 1024;
     return (stats.totalSize / totalStorageLimit) * 100;
-  };
-
-  const getMaxBarHeight = () => {
-    const max = Math.max(...weeklyData, 1);
-    return Math.min(max * 10, 80); // Max height 80px, each upload = 10px
   };
 
   const handleFilePress = (file: any) => {
@@ -120,21 +132,57 @@ export default function HomeScreen() {
     });
   };
 
-  // Skeleton Loader
+  // Enhanced Skeleton Loader Component
   const SkeletonLoader = () => (
     <View className="pb-20 px-2 pt-2 bg-black">
+      {/* Stats Cards Skeleton - Animated shimmer effect */}
       <View className="flex-row flex-wrap gap-4">
         {[1, 2, 3].map((i) => (
-          <View key={i} className="bg-neutral-800 p-5 rounded-2xl flex-1 min-w-[150px] h-32" />
+          <View key={i} className="bg-neutral-800/50 p-5 rounded-2xl flex-1 min-w-[150px] h-32">
+            <View className="bg-neutral-700/50 rounded h-4 w-20 mb-2" />
+            <View className="bg-neutral-700/50 rounded h-8 w-16 mt-2" />
+            <View className="bg-neutral-700/50 rounded h-3 w-24 mt-4" />
+          </View>
         ))}
       </View>
-      <View className="mt-6 bg-neutral-800 p-5 rounded-2xl h-24" />
+      
+      {/* Reminder Card Skeleton */}
+      <View className="mt-6 bg-neutral-800/50 p-5 rounded-2xl h-24">
+        <View className="bg-neutral-700/50 rounded h-5 w-32 mb-2" />
+        <View className="bg-neutral-700/50 rounded h-4 w-48" />
+      </View>
+      
+      {/* Recent Uploads Skeleton */}
       <View className="mt-8">
-        <View className="bg-neutral-800 h-6 w-40 mb-4 rounded" />
-        <View className="bg-neutral-800 p-5 rounded-2xl h-64" />
+        <View className="bg-neutral-700/50 rounded h-6 w-40 mb-4" />
+        <View className="bg-neutral-800/50 p-5 rounded-2xl">
+          <View className="bg-neutral-700/50 rounded h-5 w-32 mb-4" />
+          <View className="flex-row justify-between items-end h-32 mb-6">
+            {[1, 2, 3, 4, 5, 6, 7].map((i) => (
+              <View key={i} className="items-center">
+                <View className="bg-neutral-700/50 rounded-t-lg w-8 h-12" />
+                <View className="bg-neutral-700/50 rounded h-3 w-6 mt-2" />
+              </View>
+            ))}
+          </View>
+          <View className="bg-neutral-700/50 rounded h-8 w-full mb-4" />
+          {[1, 2, 3].map((i) => (
+            <View key={i} className="flex-row items-center py-3 border-t border-neutral-800">
+              <View className="bg-neutral-700/50 rounded-lg w-10 h-10" />
+              <View className="flex-1 ml-3">
+                <View className="bg-neutral-700/50 rounded h-4 w-32 mb-2" />
+                <View className="bg-neutral-700/50 rounded h-3 w-24" />
+              </View>
+              <View className="bg-neutral-700/50 rounded h-5 w-5" />
+            </View>
+          ))}
+        </View>
       </View>
     </View>
   );
+
+  // Show skeleton during initial loading, refresh, or data refresh
+  const shouldShowSkeleton = loading || refreshing || isRefreshingData;
 
   return (
     <Animated.ScrollView 
@@ -149,7 +197,7 @@ export default function HomeScreen() {
         <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#3b82f6" />
       }
     >
-      {loading && !refreshing ? (
+      {shouldShowSkeleton ? (
         <SkeletonLoader />
       ) : (
         <View className="pb-20 px-2 pt-2 bg-black">
@@ -210,8 +258,8 @@ export default function HomeScreen() {
               <View className="flex-row justify-between items-end h-32 mb-6">
                 {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map((day, index) => {
                   const count = weeklyData[index];
-                  const maxHeight = getMaxBarHeight();
-                  const barHeight = count === 0 ? 4 : Math.max((count / Math.max(...weeklyData)) * 80, 8);
+                  const maxCount = Math.max(...weeklyData, 1);
+                  const barHeight = count === 0 ? 4 : Math.max((count / maxCount) * 80, 8);
                   
                   return (
                     <View key={day} className="items-center">

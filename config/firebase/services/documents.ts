@@ -1,18 +1,19 @@
 
+import * as Crypto from 'expo-crypto';
 import {
-    addDoc,
-    collection,
-    deleteDoc,
-    doc,
-    getDoc,
-    getDocs,
-    increment,
-    orderBy,
-    query,
-    serverTimestamp,
-    Timestamp,
-    updateDoc,
-    where
+  addDoc,
+  collection,
+  deleteDoc,
+  doc,
+  getDoc,
+  getDocs,
+  increment,
+  orderBy,
+  query,
+  serverTimestamp,
+  Timestamp,
+  updateDoc,
+  where
 } from 'firebase/firestore';
 import { Alert } from 'react-native';
 import { db } from '../config';
@@ -413,23 +414,62 @@ export const permanentlyDeleteDocument = async (documentId: string) => {
     const data = docSnap.data();
     const publicId = data.cloudinary?.publicId;
     
-    // Delete from Cloudinary via API
+    // Delete from Cloudinary directly
     if (publicId) {
       try {
-        await fetch('https://your-api-endpoint/cloudinary/delete', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ publicId }),
-        });
+        const cloudName = process.env.EXPO_PUBLIC_CLOUDINARY_CLOUD_NAME;
+        const apiKey = process.env.EXPO_PUBLIC_CLOUDINARY_API_KEY;
+        const apiSecret = process.env.EXPO_PUBLIC_CLOUDINARY_API_SECRET;
+        
+        if (!cloudName || !apiKey || !apiSecret) {
+          console.error('Cloudinary credentials missing');
+        } else {
+          // Generate timestamp and signature
+          const timestamp = Math.floor(Date.now() / 1000);
+          
+          // Create signature string
+          const signatureString = `public_id=${publicId}&timestamp=${timestamp}${apiSecret}`;
+          
+          // Generate SHA256 signature using Expo Crypto
+          const signature = await Crypto.digestStringAsync(
+            Crypto.CryptoDigestAlgorithm.SHA256,
+            signatureString
+          );
+          
+          console.log('Attempting to delete from Cloudinary:', publicId);
+          
+          // Call Cloudinary destroy API
+          const response = await fetch(`https://api.cloudinary.com/v1_1/${cloudName}/image/destroy`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              public_id: publicId,
+              api_key: apiKey,
+              timestamp: timestamp,
+              signature: signature,
+            }),
+          });
+          
+          const result = await response.json();
+          console.log('Cloudinary deletion result:', result);
+          
+          if (result.result === 'ok') {
+            console.log('✅ Successfully deleted from Cloudinary');
+          } else {
+            console.error('❌ Cloudinary deletion failed:', result);
+          }
+        }
       } catch (error) {
         console.error('Error deleting from Cloudinary:', error);
+        // Don't throw - we still want to delete from Firestore
       }
     }
     
     // Delete from Firestore
     await deleteDoc(docRef);
+    console.log('✅ Document deleted from Firestore');
     
   } catch (error) {
     console.error('Error deleting document:', error);

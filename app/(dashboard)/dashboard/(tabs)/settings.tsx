@@ -20,7 +20,7 @@ const settings = () => {
     <View>
     <Button
      onPress={handleSignOut}
-     title='logout'
+     title='singout'
      color={"red"}
     />
     </View>
