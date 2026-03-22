@@ -91,19 +91,16 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
       if (!mounted) return;
 
-      setUser(firebaseUser);
-
       if (firebaseUser) {
-        // Check onboarding status from Firestore
+        setUser(firebaseUser);
+
         const onboardingStatus = await checkOnboardingStatus(firebaseUser.uid);
         if (mounted) {
           setHasCompletedOnboarding(onboardingStatus);
         }
       } else {
-        // Clear onboarding status when logged out
-        if (mounted) {
-          setHasCompletedOnboarding(false);
-        }
+        setUser(null);
+        setHasCompletedOnboarding(false);
       }
 
       if (mounted) {
@@ -119,27 +116,21 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   // Handle navigation based on auth state
   useEffect(() => {
-    if (!isLoading) {
-      console.log("🧭 Navigation check:", {
-        user: !!user,
-        hasCompletedOnboarding,
-        path: router.canGoBack() ? "can go back" : "root",
-      });
+    if (isLoading) return;
 
-      if (!user) {
-        console.log("➡️ No user, redirecting to auth/welcome");
-        router.replace("/(auth)/welcome");
-      } else if (user && !hasCompletedOnboarding) {
-        console.log(
-          "➡️ User needs onboarding, redirecting to onboarding/welcome",
-        );
-        router.replace("/(onboarding)/welcome");
-      } else if (user && hasCompletedOnboarding) {
-        console.log("➡️ User completed onboarding, redirecting to dashboard");
-        router.replace("/(dashboard)/dashboard/(tabs)");
-      }
+    console.log("🧭 Navigation check:", {
+      user: !!user,
+      hasCompletedOnboarding,
+    });
+
+    if (!user) {
+      router.replace("/(auth)/welcome");
+    } else if (!hasCompletedOnboarding) {
+      router.replace("/(onboarding)/welcome");
+    } else {
+      router.replace("/(dashboard)/dashboard/(tabs)");
     }
-  }, [user, isLoading, hasCompletedOnboarding]);
+  }, [isLoading, user, hasCompletedOnboarding]);
 
   return (
     <AuthContext.Provider
