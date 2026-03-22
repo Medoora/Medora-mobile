@@ -1,8 +1,7 @@
 // app/(auth)/_layout.tsx
-import { Stack } from 'expo-router';
-import { useAuth } from "@/context/auth-context"
+import { useAuth } from "@/context/auth-context";
+import { router, Stack } from 'expo-router';
 import { useEffect } from 'react';
-import { router } from 'expo-router';
 
 export default function AuthLayout() {
   const { user, hasCompletedOnboarding } = useAuth();
