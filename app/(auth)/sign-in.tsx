@@ -1,12 +1,11 @@
-import { View, Text, TextInput, TouchableOpacity, ScrollView, ActivityIndicator, Image, Alert } from 'react-native';
-import React, { useState } from 'react';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { directLogin, resetPassword } from '@/config/firebase/services/auth';
+import { Ionicons } from '@expo/vector-icons';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { router } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import { Ionicons } from '@expo/vector-icons';
-import { directLogin, loginWithGoogle, resetPassword } from '@/config/firebase/services/auth';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import { debugNetwork } from '@/utils/networkDebug';
+import React, { useState } from 'react';
+import { ActivityIndicator, Alert, Image, ScrollView, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 export default function SignIn() {
   const [formData, setFormData] = useState({
@@ -346,7 +345,7 @@ export default function SignIn() {
                 <View className="flex-1 h-[1px] bg-zinc-800" />
               </View>
 
- <TouchableOpacity
+{/*  <TouchableOpacity
     onPress={async () => {
       console.log("🔍 Running network debug...");
       await debugNetwork();
@@ -354,7 +353,7 @@ export default function SignIn() {
     className="bg-zinc-800 py-3 px-4 rounded-xl"
   >
     <Text className="text-white text-center">Debug Network</Text>
-  </TouchableOpacity>
+  </TouchableOpacity> */}
               {/* Google Sign In */}
               <TouchableOpacity
              /*    onPress={handleGoogleSignIn} */
