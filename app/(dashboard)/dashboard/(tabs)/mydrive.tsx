@@ -14,7 +14,6 @@ import {
   findNodeHandle
 } from 'react-native';
 
-
 // For Android layout measurements
 if (Platform.OS === 'android') {
   if (UIManager.setLayoutAnimationEnabledExperimental) {
@@ -34,10 +33,11 @@ export default function MyDriveScreen() {
   const [dropdownVisible, setDropdownVisible] = useState(false);
   const [dropdownFile, setDropdownFile] = useState<any>(null);
   const [dropdownPosition, setDropdownPosition] = useState({ top: 0, right: 16 });
+  const [isUploading, setIsUploading] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
   const scrollY = useRef(new Animated.Value(0)).current;
   const { user } = useAuth();
-  
-const buttonRef = useRef<any>(null);
+
   // Filter options based on actual data
   const [filterOptions, setFilterOptions] = useState([
     { id: 'all', label: 'All', icon: 'apps-outline' },
@@ -51,11 +51,11 @@ const buttonRef = useRef<any>(null);
   ];
 
   // Fetch documents from Firebase
-  const fetchDocuments = useCallback(async () => {
+  const fetchDocuments = useCallback(async (showLoading = true) => {
     if (!user?.uid) return;
     
     try {
-      setLoading(true);
+      if (showLoading) setLoading(true);
       const documents = await getUserDocuments(user.uid);
       setFiles(documents);
       
@@ -84,16 +84,24 @@ const buttonRef = useRef<any>(null);
     } finally {
       setLoading(false);
       setRefreshing(false);
+      setIsUploading(false);
+      setIsDeleting(false);
     }
   }, [user?.uid]);
 
   useEffect(() => {
-    fetchDocuments();
+    fetchDocuments(true);
   }, [fetchDocuments]);
 
   const onRefresh = useCallback(() => {
     setRefreshing(true);
-    fetchDocuments();
+    fetchDocuments(false);
+  }, [fetchDocuments]);
+
+  // Function to refresh after any data change (upload, delete, restore)
+  const refreshAfterDataChange = useCallback(() => {
+    setIsUploading(true);
+    fetchDocuments(false);
   }, [fetchDocuments]);
 
   const handleStarToggle = async (fileId: string, currentStarred: boolean) => {
@@ -124,12 +132,15 @@ const buttonRef = useRef<any>(null);
           text: 'Move to Trash',
           style: 'destructive',
           onPress: async () => {
+            setIsDeleting(true);
             try {
               await trashDocument(fileId);
-              setFiles(prevFiles => prevFiles.filter(file => file.id !== fileId));
+              await fetchDocuments(false);
               setDropdownVisible(false);
             } catch (error) {
               console.error('Error deleting file:', error);
+            } finally {
+              setIsDeleting(false);
             }
           }
         }
@@ -203,17 +214,12 @@ const buttonRef = useRef<any>(null);
   // Skeleton Loader Component
   const SkeletonLoader = () => (
     <View className="px-2 pt-2">
-      {/* Search Bar Skeleton */}
       <View className="bg-neutral-800 rounded-xl h-12 mb-4" />
-      
-      {/* Filter Options Skeleton */}
       <View className="flex-row gap-2 mb-5">
-        {[1, 2, 3, 4, 5].map((i) => (
+        {[1, 2, 3].map((i) => (
           <View key={i} className="bg-neutral-800 rounded-full h-10 w-20" />
         ))}
       </View>
-      
-      {/* Sort Options Skeleton */}
       <View className="flex-row justify-between mb-4">
         <View className="bg-neutral-800 rounded-lg h-8 w-20" />
         <View className="flex-row gap-2">
@@ -222,15 +228,11 @@ const buttonRef = useRef<any>(null);
           ))}
         </View>
       </View>
-      
-      {/* Stats Bar Skeleton */}
       <View className="flex-row justify-between mb-4 pb-2">
         <View className="bg-neutral-800 rounded h-5 w-32" />
         <View className="bg-neutral-800 rounded h-5 w-24" />
       </View>
-      
-      {/* File Cards Skeleton */}
-      {[1, 2, 3, 4, 5].map((i) => (
+      {[1, 2, 3].map((i) => (
         <View key={i} className="flex-row items-center p-4 bg-neutral-800/50 rounded-xl mb-3">
           <View className="w-12 h-12 bg-neutral-700 rounded-xl" />
           <View className="flex-1 ml-3">
@@ -243,95 +245,95 @@ const buttonRef = useRef<any>(null);
     </View>
   );
 
-const FileCard = ({ file, index }: { file: any; index: number }) => {
-  const buttonRef = useRef<any>(null); // Use any to avoid type issues
+  const FileCard = ({ file, index }: { file: any; index: number }) => {
+    const buttonRef = useRef<any>(null);
 
-  return (
-    <View className="mb-3">
-      <TouchableOpacity 
-        onPress={() => handleFilePress(file)}
-        className="flex-row items-center p-4 bg-neutral-900 rounded-xl border border-neutral-800"
-      >
-        {/* Thumbnail or Icon */}
-        {file.cloudinary?.thumbnailUrl ? (
-          <Image 
-            source={{ uri: file.cloudinary.thumbnailUrl }}
-            className="w-12 h-12 rounded-xl"
-            resizeMode="cover"
-          />
-        ) : (
-          <View className="w-12 h-12 bg-blue-500/10 rounded-xl items-center justify-center">
-            <Ionicons name={getFileIcon(file)} size={24} color="#3b82f6" />
-          </View>
-        )}
-        
-        <View className="flex-1 ml-3">
-          <Text className="text-white font-medium text-base" numberOfLines={1}>
-            {file.documentName}
-          </Text>
-          <View className="flex-row items-center mt-1 flex-wrap">
-            <Text className="text-neutral-500 text-xs">
-              {formatFileSize(file.cloudinary?.bytes || 0)}
-            </Text>
-            <Text className="text-neutral-600 text-xs mx-1">•</Text>
-            <Text className="text-neutral-500 text-xs">
-              {formatDate(file.uploadedAt)}
-            </Text>
-            {file.categoryLabel && (
-              <>
-                <Text className="text-neutral-600 text-xs mx-1">•</Text>
-                <Text className="text-neutral-500 text-xs">
-                  {file.categoryLabel}
-                </Text>
-              </>
-            )}
-          </View>
-          {file.tags && file.tags.length > 0 && (
-            <View className="flex-row mt-1">
-              {file.tags.slice(0, 2).map((tag: string, tagIndex: number) => (
-                <View key={tagIndex} className="bg-neutral-800 px-2 py-0.5 rounded-full mr-2">
-                  <Text className="text-neutral-400 text-xs">{tag}</Text>
-                </View>
-              ))}
+    return (
+      <View className="mb-3">
+        <TouchableOpacity 
+          onPress={() => handleFilePress(file)}
+          className="flex-row items-center p-4 bg-neutral-900 rounded-xl border border-neutral-800"
+        >
+          {file.cloudinary?.thumbnailUrl ? (
+            <Image 
+              source={{ uri: file.cloudinary.thumbnailUrl }}
+              className="w-12 h-12 rounded-xl"
+              resizeMode="cover"
+            />
+          ) : (
+            <View className="w-12 h-12 bg-blue-500/10 rounded-xl items-center justify-center">
+              <Ionicons name={getFileIcon(file)} size={24} color="#3b82f6" />
             </View>
           )}
-        </View>
-        
-        <View className="flex-row items-center">
-          {/* Star Button */}
-          <TouchableOpacity 
-            onPress={() => handleStarToggle(file.id, file.isStarred)}
-            className="p-2"
-          >
-            <Ionicons 
-              name={file.isStarred ? "star" : "star-outline"} 
-              size={18} 
-              color={file.isStarred ? "#fbbf24" : "#737373"} 
-            />
-          </TouchableOpacity>
           
-          {/* Three Dots Menu Button */}
-          <TouchableOpacity 
-            ref={buttonRef}
-            onPress={() => {
-              if (buttonRef.current) {
-                measureButtonPosition(buttonRef.current);
-                setDropdownFile(file);
-                setDropdownVisible(true);
-              }
-            }}
-            className="p-2"
-          >
-            <Ionicons name="ellipsis-vertical" size={18} color="#737373" />
-          </TouchableOpacity>
-        </View>
-      </TouchableOpacity>
-    </View>
-  );
-};
+          <View className="flex-1 ml-3">
+            <Text className="text-white font-medium text-base" numberOfLines={1}>
+              {file.documentName}
+            </Text>
+            <View className="flex-row items-center mt-1 flex-wrap">
+              <Text className="text-neutral-500 text-xs">
+                {formatFileSize(file.cloudinary?.bytes || 0)}
+              </Text>
+              <Text className="text-neutral-600 text-xs mx-1">•</Text>
+              <Text className="text-neutral-500 text-xs">
+                {formatDate(file.uploadedAt)}
+              </Text>
+              {file.categoryLabel && (
+                <>
+                  <Text className="text-neutral-600 text-xs mx-1">•</Text>
+                  <Text className="text-neutral-500 text-xs">
+                    {file.categoryLabel}
+                  </Text>
+                </>
+              )}
+            </View>
+            {file.tags && file.tags.length > 0 && (
+              <View className="flex-row mt-1">
+                {file.tags.slice(0, 2).map((tag: string, tagIndex: number) => (
+                  <View key={tagIndex} className="bg-neutral-800 px-2 py-0.5 rounded-full mr-2">
+                    <Text className="text-neutral-400 text-xs">{tag}</Text>
+                  </View>
+                ))}
+              </View>
+            )}
+          </View>
+          
+          <View className="flex-row items-center">
+            <TouchableOpacity 
+              onPress={() => handleStarToggle(file.id, file.isStarred)}
+              className="p-2"
+            >
+              <Ionicons 
+                name={file.isStarred ? "star" : "star-outline"} 
+                size={18} 
+                color={file.isStarred ? "#fbbf24" : "#737373"} 
+              />
+            </TouchableOpacity>
+            
+            <TouchableOpacity 
+              ref={buttonRef}
+              onPress={() => {
+                if (buttonRef.current) {
+                  measureButtonPosition(buttonRef.current);
+                  setDropdownFile(file);
+                  setDropdownVisible(true);
+                }
+              }}
+              className="p-2"
+            >
+              <Ionicons name="ellipsis-vertical" size={18} color="#737373" />
+            </TouchableOpacity>
+          </View>
+        </TouchableOpacity>
+      </View>
+    );
+  };
 
   // Calculate total storage used
   const totalStorageUsed = files.reduce((total, file) => total + (file.cloudinary?.bytes || 0), 0);
+
+  // Show skeleton during loading, refreshing, uploading, or deleting
+  const shouldShowSkeleton = loading || refreshing || isUploading || isDeleting;
 
   return (
     <>
@@ -365,8 +367,8 @@ const FileCard = ({ file, index }: { file: any; index: number }) => {
             )}
           </View>
 
-          {/* Show Skeleton while loading */}
-          {loading && !refreshing ? (
+          {/* Show Skeleton during any data operation */}
+          {shouldShowSkeleton ? (
             <SkeletonLoader />
           ) : (
             <>
