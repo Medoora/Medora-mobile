@@ -25,14 +25,33 @@
       },
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
-
       "permissions": [
         "READ_EXTERNAL_STORAGE",
         "WRITE_EXTERNAL_STORAGE",
         "READ_MEDIA_IMAGES",
         "READ_MEDIA_VIDEO",
-        "READ_MEDIA_AUDIO"
-      ]
+        "READ_MEDIA_AUDIO",
+        "android.permission.READ_EXTERNAL_STORAGE",
+        "android.permission.WRITE_EXTERNAL_STORAGE",
+        "android.permission.READ_MEDIA_VISUAL_USER_SELECTED",
+        "android.permission.ACCESS_MEDIA_LOCATION",
+        "android.permission.READ_MEDIA_IMAGES",
+        "android.permission.READ_MEDIA_VIDEO",
+        "android.permission.READ_MEDIA_AUDIO",
+        "READ_EXTERNAL_STORAGE",
+        "WRITE_EXTERNAL_STORAGE",
+        "READ_MEDIA_IMAGES",
+        "READ_MEDIA_VIDEO",
+        "READ_MEDIA_AUDIO",
+        "android.permission.READ_EXTERNAL_STORAGE",
+        "android.permission.WRITE_EXTERNAL_STORAGE",
+        "android.permission.READ_MEDIA_VISUAL_USER_SELECTED",
+        "android.permission.ACCESS_MEDIA_LOCATION",
+        "android.permission.READ_MEDIA_IMAGES",
+        "android.permission.READ_MEDIA_VIDEO",
+        "android.permission.READ_MEDIA_AUDIO"
+      ],
+      "package": "com.anonymous.medoraapp"
     },
     "web": {
       "bundler": "metro",
@@ -54,13 +73,17 @@
         }
       ],
       "@react-native-community/datetimepicker",
-
       [
         "expo-media-library",
         {
           "photosPermission": "Allow Medora to access your media",
           "savePhotosPermission": "Allow Medora to save files",
-          "isAccessMediaLocationEnabled": true
+          "isAccessMediaLocationEnabled": true,
+          "granularPermissions": [
+            "photo",
+            "video",
+            "audio"
+          ]
         }
       ]
     ],
