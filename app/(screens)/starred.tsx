@@ -1,4 +1,5 @@
 import FileDetailsModal from "@/components/modal/filedetails-modal";
+import DashboardWrapper from "@/components/wrapper/dashboard-wrapper";
 import {
   getUserDocuments,
   toggleDocumentStarred,
@@ -342,7 +343,13 @@ export default function MyDriveScreen() {
 
   return (
     <>
-      <Animated.ScrollView
+     <DashboardWrapper
+       title="Starred" 
+      
+      rightIconName="search-outline"
+      onRightIconPress={() => console.log('Search pressed')}
+     >
+       <Animated.ScrollView
         showsVerticalScrollIndicator={false}
         scrollEventThrottle={16}
         onScroll={Animated.event(
@@ -358,7 +365,7 @@ export default function MyDriveScreen() {
           />
         }
       >
-        <View className="pb-20 bg-black px-2 pt-2">
+        <View className="pb-20 bg-black px-3 pt-2">
           {/* Search Bar */}
           <View className="flex-row items-center bg-neutral-900 rounded-xl px-4 py-2 mb-4 border border-neutral-800">
             <Ionicons name="search-outline" size={20} color="#737373" />
@@ -531,6 +538,7 @@ export default function MyDriveScreen() {
         }}
         onUpdate={fetchDocuments}
       />
+     </DashboardWrapper>
     </>
   );
 }
