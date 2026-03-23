@@ -1,3 +1,10 @@
+import { getDocumentStatistics, getRecentUploads, getUserDocuments } from '@/config/firebase/services/documents';
+import { useAuth } from '@/context/auth-context';
+import { fileEvents } from '@/utils/events';
+import { Ionicons } from '@expo/vector-icons';
+import { router } from 'expo-router';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { Animated, Image, RefreshControl, Text, TouchableOpacity, View } from 'react-native';
 import { db } from "@/config/firebase/config";
 import {
   getDocumentStatistics,
@@ -57,12 +64,93 @@ export default function HomeScreen() {
 
   // Get day index (0 = Monday, 6 = Sunday)
   const getDayIndex = (date: Date): number => {
-    const day = date.getDay(); // 0 = Sunday, 1 = Monday, ...
-    return day === 0 ? 6 : day - 1; // Convert to Monday-based index
+    const day = date.getDay();
+    return day === 0 ? 6 : day - 1;
   };
 
   // Calculate weekly upload counts
   const calculateWeeklyData = (files: any[]) => {
+  const counts = [0, 0, 0, 0, 0, 0, 0];
+  
+  const today = new Date();
+  const startOfWeek = new Date(today);
+  // Get Monday of current week
+  const dayOfWeek = today.getDay();
+  const daysToMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
+  startOfWeek.setDate(today.getDate() - daysToMonday);
+  startOfWeek.setHours(0, 0, 0, 0);
+  
+  console.log('Start of week (Monday):', startOfWeek.toDateString());
+  console.log('Today:', today.toDateString());
+  
+  files.forEach(file => {
+    if (!file.uploadedAt) {
+      console.log('Missing uploadedAt for:', file.documentName);
+      return;
+    }
+    
+    let uploadDate;
+    if (file.uploadedAt?.toDate) {
+      // Firebase Timestamp
+      uploadDate = file.uploadedAt.toDate();
+    } else if (file.uploadedAt?.seconds) {
+      // Firestore timestamp with seconds
+      uploadDate = new Date(file.uploadedAt.seconds * 1000);
+    } else if (typeof file.uploadedAt === 'string') {
+      // String date
+      uploadDate = new Date(file.uploadedAt);
+    } else if (file.uploadedAt instanceof Date) {
+      // Date object
+      uploadDate = file.uploadedAt;
+    } else {
+      console.log('Unknown uploadedAt format for:', file.documentName, file.uploadedAt);
+      return;
+    }
+    
+    console.log('File:', file.documentName);
+    console.log('  Upload date:', uploadDate.toDateString());
+    console.log('  Is after start of week?', uploadDate >= startOfWeek);
+    
+    if (uploadDate >= startOfWeek) {
+      const dayIndex = getDayIndex(uploadDate);
+      counts[dayIndex]++;
+      console.log('  Added to day:', ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'][dayIndex]);
+    }
+  });
+  
+  console.log('Final weekly counts:', counts);
+  return counts;
+};
+
+const fetchDashboardData = useCallback(async () => {
+  if (!user?.uid) return;
+  
+  try {
+    setLoading(true);
+    
+    const statistics = await getDocumentStatistics(user.uid);
+    setStats(statistics);
+    
+    const allDocuments = await getUserDocuments(user.uid, { includeTrashed: false });
+    const weeklyCounts = calculateWeeklyData(allDocuments);
+    
+    // Add debug logs
+    console.log('All documents:', allDocuments.length);
+    console.log('Weekly counts:', weeklyCounts);
+    console.log('Weekly counts total:', weeklyCounts.reduce((a, b) => a + b, 0));
+    
+    setWeeklyData(weeklyCounts);
+    
+    const recent = await getRecentUploads(user.uid, 5);
+    setRecentUploads(recent);
+    
+  } catch (error) {
+    console.error('Error fetching dashboard data:', error);
+  } finally {
+    setLoading(false);
+    setRefreshing(false);
+  }
+}, [user?.uid]);
     const counts = [0, 0, 0, 0, 0, 0, 0]; // Mon to Sun
 
     const today = new Date();
@@ -120,6 +208,20 @@ export default function HomeScreen() {
     fetchDashboardData();
   }, [fetchDashboardData]);
 
+  // Listen for upload events to refresh the chart
+  useEffect(() => {
+    const handleUploadComplete = () => {
+      console.log('Upload detected, refreshing dashboard...');
+      fetchDashboardData();
+    };
+    
+    fileEvents.on('uploadComplete', handleUploadComplete);
+    
+    return () => {
+      fileEvents.off('uploadComplete', handleUploadComplete);
+    };
+  }, [fetchDashboardData]);
+
   const onRefresh = useCallback(() => {
     setRefreshing(true);
     fetchDashboardData();
@@ -147,17 +249,12 @@ export default function HomeScreen() {
   };
 
   const getStoragePercentage = () => {
-    const totalStorageLimit = 500 * 1024 * 1024; // 500 MB in bytes
+    const totalStorageLimit = 500 * 1024 * 1024;
     return (stats.totalSize / totalStorageLimit) * 100;
   };
   const TOTAL_STORAGE = 500 * 1024 * 1024;
 
   const usedPercentage = Math.min((stats.totalSize / TOTAL_STORAGE) * 100, 100);
-
-  const getMaxBarHeight = () => {
-    const max = Math.max(...weeklyData, 1);
-    return Math.min(max * 10, 80); // Max height 80px, each upload = 10px
-  };
 
   const handleFilePress = (file: any) => {
     router.push({
@@ -367,6 +464,19 @@ export default function HomeScreen() {
 
               {/* Week Days Chart - Dynamic */}
               <View className="flex-row justify-between items-end h-32 mb-6">
+                {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map((day, index) => {
+                  const count = weeklyData[index];
+                  const maxCount = Math.max(...weeklyData, 1);
+                  const barHeight = count === 0 ? 4 : Math.max((count / maxCount) * 80, 8);
+                  
+                  return (
+                    <View key={day} className="items-center">
+                      <View className="items-center">
+                        <Text className="text-blue-400 text-xs mb-1">{count > 0 ? count : ''}</Text>
+                        <View 
+                          className="w-8 bg-blue-500 rounded-t-lg"
+                          style={{ height: barHeight }}
+                        />
                 {["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].map(
                   (day, index) => {
                     const count = weeklyData[index];
