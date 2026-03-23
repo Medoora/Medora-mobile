@@ -1,11 +1,14 @@
+import { db } from "@/config/firebase/config";
 import {
   getDocumentStatistics,
   getRecentUploads,
   getUserDocuments,
 } from "@/config/firebase/services/documents";
 import { useAuth } from "@/context/auth-context";
+import { registerForPushNotifications } from "@/utils/notifications";
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
+import { doc, updateDoc } from "firebase/firestore";
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
   Animated,
@@ -32,6 +35,25 @@ export default function HomeScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const scrollY = useRef(new Animated.Value(0)).current;
   const { user } = useAuth();
+
+  useEffect(() => {
+    const setupPush = async () => {
+      if (!user?.uid) return;
+
+      const token = await registerForPushNotifications();
+
+      if (!token) return;
+
+      // save token in user document
+      await updateDoc(doc(db, "users", user.uid), {
+        pushToken: token,
+      });
+
+      console.log("Push token saved:", token);
+    };
+
+    setupPush();
+  }, [user?.uid]);
 
   // Get day index (0 = Monday, 6 = Sunday)
   const getDayIndex = (date: Date): number => {

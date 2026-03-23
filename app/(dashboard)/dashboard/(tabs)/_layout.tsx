@@ -1,10 +1,14 @@
 import UploadModal from "@/components/modal/upload-modal";
+import {
+  getUserReminders,
+  markReminderNotified,
+} from "@/config/firebase/services/reminder/service";
 import { useAuth } from "@/context/auth-context";
 import { Ionicons } from "@expo/vector-icons";
 import AntDesign from "@expo/vector-icons/AntDesign";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import { router, Tabs, usePathname } from "expo-router";
-import React, { useCallback, useRef, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
   Alert,
   Animated,
@@ -15,6 +19,7 @@ import {
   Switch,
   Text,
   TouchableOpacity,
+  Vibration,
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -31,6 +36,60 @@ export default function TabsLayout() {
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const pathname = usePathname();
   const { user } = useAuth();
+  const [activeReminder, setActiveReminder] = useState<any>(null);
+  const notifAnim = useRef(new Animated.Value(-100)).current;
+
+  useEffect(() => {
+    if (!activeReminder) return;
+
+    const timer = setTimeout(() => {
+      Animated.timing(notifAnim, {
+        toValue: -100,
+        duration: 300,
+        useNativeDriver: true,
+      }).start(async () => {
+        setActiveReminder(null);
+      });
+    }, 5000); // ⏱ 5 sec
+
+    return () => clearTimeout(timer);
+  }, [activeReminder]);
+
+  useEffect(() => {
+    if (!user?.uid) return;
+
+    const interval = setInterval(async () => {
+      const reminders = await getUserReminders(user.uid);
+
+      const now = new Date();
+
+      const dueReminders = reminders.filter((r: any) => {
+        const sendAt = r.sendAt?.toDate?.();
+        return sendAt && sendAt <= now && !r.notified && r.status === "active";
+      });
+
+      const due = dueReminders[0];
+
+      if (due && !activeReminder) {
+        Vibration.vibrate(300);
+
+        // 🔥 mark immediately so it never triggers again
+        await markReminderNotified(due.id);
+
+        setActiveReminder(due);
+
+        notifAnim.setValue(-100);
+
+        Animated.timing(notifAnim, {
+          toValue: 0,
+          duration: 400,
+          useNativeDriver: true,
+        }).start();
+      }
+    }, 5000);
+
+    return () => clearInterval(interval); // ✅ OUTSIDE
+  }, [user?.uid]);
 
   const openUploadModal = useCallback(() => {
     setIsUploadModalOpen(true);
@@ -123,8 +182,87 @@ export default function TabsLayout() {
 
   const currentTab = getTabName();
 
+  const formatDateTime = (timestamp: any) => {
+    const date = timestamp?.toDate?.();
+    if (!date) return { date: "", time: "" };
+
+    return {
+      date: date.toLocaleDateString(),
+      time: date.toLocaleTimeString([], {
+        hour: "2-digit",
+        minute: "2-digit",
+      }),
+    };
+  };
+
   return (
     <View className="flex-1 bg-neutral-950">
+      {activeReminder && (
+        <Animated.View
+          style={{
+            transform: [{ translateY: notifAnim }],
+          }}
+          className="absolute top-14 left-4 right-4 z-50 bg-neutral-900 border border-blue-500 p-4 rounded-2xl shadow-lg"
+        >
+          {/* TOP */}
+          <View className="flex-row items-center justify-between">
+            <View className="flex-row items-center">
+              <Ionicons name="alarm" size={20} color="#3b82f6" />
+              <Text className="text-white ml-2 font-semibold text-sm">
+                Reminder Alert
+              </Text>
+            </View>
+
+            <TouchableOpacity
+              onPress={async () => {
+                setActiveReminder(null);
+              }}
+            >
+              <Ionicons name="close" size={18} color="#aaa" />
+            </TouchableOpacity>
+          </View>
+
+          <View className="mt-3">
+            {/* Title */}
+            <Text className="text-white text-base font-semibold">
+              {activeReminder.title}
+            </Text>
+
+            {/* Doctor */}
+            <Text className="text-neutral-400 text-sm mt-1">
+              {activeReminder.doctor}
+            </Text>
+
+            {/* Date + Time */}
+            <Text className="text-neutral-500 text-xs mt-2">
+              {activeReminder.appointmentDate?.toDate?.().toLocaleString()}
+            </Text>
+
+            {/* Notes */}
+            {activeReminder.notes && (
+              <Text className="text-neutral-400 text-xs mt-2">
+                {activeReminder.notes}
+              </Text>
+            )}
+          </View>
+
+          {/* ACTION */}
+          <TouchableOpacity
+            onPress={async () => {
+              Animated.timing(notifAnim, {
+                toValue: -100,
+                duration: 300,
+                useNativeDriver: true,
+              }).start(async () => {
+                setActiveReminder(null);
+              });
+            }}
+            className="mt-4 bg-blue-500 py-2 rounded-lg items-center"
+          >
+            <Text className="text-white text-sm font-medium">Dismiss</Text>
+          </TouchableOpacity>
+        </Animated.View>
+      )}
       <StatusBar barStyle="light-content" />
 
       {/* Main Content */}
