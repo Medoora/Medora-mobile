@@ -1,6 +1,7 @@
 import { saveDocumentMetadata } from "@/config/firebase/services/documents";
 import { useAuth } from '@/context/auth-context';
 import { extractFileInfo, uploadToCloudinary } from '@/lib/cloudinary/service';
+import { fileEvents } from "@/utils/events";
 import { Ionicons } from '@expo/vector-icons';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import * as DocumentPicker from 'expo-document-picker';
@@ -294,6 +295,7 @@ const handleFilePick = async () => {
       };
 
       const documentId = await saveDocumentMetadata(documentData);
+      fileEvents.emit("uploadComplete")
       
       if (onUpload) {
         onUpload(uploadType, {
