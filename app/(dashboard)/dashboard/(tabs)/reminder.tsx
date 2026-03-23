@@ -113,16 +113,6 @@ export default function ReminderScreen() {
       className="flex-1 bg-black"
     >
       <View className="pb-24 px-4 pt-4">
-        {/* HEADER */}
-        <View className="mb-6">
-          <Text className="text-white text-2xl font-semibold">
-            Appointment Alerts
-          </Text>
-          <Text className="text-neutral-400 mt-1">
-            Schedule reminders for your medical appointments.
-          </Text>
-        </View>
-
         {/* FORM */}
         <View className="bg-neutral-900 p-5 rounded-2xl border border-neutral-800 mb-6">
           <Text className="text-white font-semibold text-lg mb-1">
