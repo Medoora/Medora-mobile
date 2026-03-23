@@ -1,4 +1,5 @@
 import FileDetailsModal from "@/components/modal/filedetails-modal";
+import DashboardWrapper from "@/components/wrapper/dashboard-wrapper";
 import {
   getUserDocuments,
   toggleDocumentStarred,
@@ -350,7 +351,9 @@ export default function MyDriveScreen() {
   const shouldShowSkeleton = loading || refreshing || isUploading || isDeleting;
 
   return (
-    <>
+  <DashboardWrapper title="Recents">
+  
+      <>
       <Animated.ScrollView
         showsVerticalScrollIndicator={false}
         scrollEventThrottle={16}
@@ -545,5 +548,6 @@ export default function MyDriveScreen() {
         onUpdate={fetchDocuments}
       />
     </>
+  </DashboardWrapper>
   );
 }

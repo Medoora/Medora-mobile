@@ -1,3 +1,4 @@
+import DashboardWrapper from '@/components/wrapper/dashboard-wrapper';
 import { getTrashedDocuments, permanentlyDeleteDocument, restoreDocument } from '@/config/firebase/services/documents';
 import { useAuth } from '@/context/auth-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -298,7 +299,8 @@ export default function TrashScreen() {
   );
 
   return (
-    <>
+   <DashboardWrapper title='Trash'>
+     <>
       <Animated.ScrollView 
         showsVerticalScrollIndicator={false}
         scrollEventThrottle={16}
@@ -408,5 +410,6 @@ export default function TrashScreen() {
         loading={isRestoring}
       />
     </>
+   </DashboardWrapper>
   );
 }
