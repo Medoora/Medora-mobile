@@ -1,15 +1,25 @@
 import {
-    addDoc,
-    collection,
-    deleteDoc,
-    doc,
-    getDocs,
-    query,
-    updateDoc,
-    where,
+  addDoc,
+  collection,
+  deleteDoc,
+  doc,
+  getDocs,
+  query,
+  updateDoc,
+  where,
 } from "firebase/firestore";
 
 import { db } from "@/config/firebase/config";
+
+export const markReminderNotified = async (id: string) => {
+  try {
+    await updateDoc(doc(db, "reminders", id), {
+      notified: true,
+    });
+  } catch (error) {
+    console.error("Error marking reminder notified:", error);
+  }
+};
 
 // 📌 CREATE
 export const createReminder = async (data: any) => {
