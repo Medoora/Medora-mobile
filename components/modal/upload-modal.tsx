@@ -1,4 +1,4 @@
-import { saveDocumentMetadata } from "@/config/firebase/services/documents";
+import { saveDocumentMetadata } from "@/config/firebase/services/dashboard/documents";
 import { useAuth } from '@/context/auth-context';
 import { extractFileInfo, uploadToCloudinary } from '@/lib/cloudinary/service';
 import { fileEvents } from "@/utils/events";

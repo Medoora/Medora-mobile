@@ -1,5 +1,5 @@
 import FileDetailsModal from "@/components/modal/filedetails-modal";
-import { getUserDocuments, toggleDocumentStarred, trashDocument } from '@/config/firebase/services/documents';
+import { getUserDocuments, toggleDocumentStarred, trashDocument } from '@/config/firebase/services/dashboard/documents';
 import { useAuth } from '@/context/auth-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useCallback, useEffect, useRef, useState } from 'react';

@@ -1,4 +1,4 @@
-import { signOutUser } from '@/config/firebase/services/auth';
+import { signOutUser } from '@/config/firebase/services/auth/auth';
 import React from 'react';
 import { Button, StyleSheet, View } from 'react-native';
 

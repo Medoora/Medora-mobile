@@ -16,7 +16,7 @@ import {
   where
 } from 'firebase/firestore';
 import { Alert } from 'react-native';
-import { db } from '../config';
+import { db } from '../../config';
 
 export interface ShareSettings {
   isPublic: boolean;

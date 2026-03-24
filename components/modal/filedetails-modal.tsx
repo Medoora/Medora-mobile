@@ -1,20 +1,20 @@
-import { toggleDocumentStarred, trashDocument } from '@/config/firebase/services/documents';
+import { toggleDocumentStarred, trashDocument } from '@/config/firebase/services/dashboard/documents';
 import { Ionicons } from '@expo/vector-icons';
 import * as FileSystem from 'expo-file-system';
 import { useEffect, useRef, useState } from 'react';
 import {
-    ActivityIndicator,
-    Alert,
-    Animated,
-    Dimensions,
-    Easing,
-    Image,
-    Modal,
-    ScrollView,
-    Share,
-    Text,
-    TouchableOpacity,
-    View,
+  ActivityIndicator,
+  Alert,
+  Animated,
+  Dimensions,
+  Easing,
+  Image,
+  Modal,
+  ScrollView,
+  Share,
+  Text,
+  TouchableOpacity,
+  View,
 } from 'react-native';
 
 const { height } = Dimensions.get('window');

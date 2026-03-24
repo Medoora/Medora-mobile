@@ -1,5 +1,5 @@
 import DashboardWrapper from '@/components/wrapper/dashboard-wrapper';
-import { getTrashedDocuments, permanentlyDeleteDocument, restoreDocument } from '@/config/firebase/services/documents';
+import { getTrashedDocuments, permanentlyDeleteDocument, restoreDocument } from '@/config/firebase/services/dashboard/documents';
 import { useAuth } from '@/context/auth-context';
 import { Ionicons } from '@expo/vector-icons';
 import { router, useFocusEffect } from 'expo-router';

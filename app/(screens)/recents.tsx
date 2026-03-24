@@ -4,7 +4,7 @@ import {
   getUserDocuments,
   toggleDocumentStarred,
   trashDocument,
-} from "@/config/firebase/services/documents";
+} from "@/config/firebase/services/dashboard/documents";
 import { useAuth } from "@/context/auth-context";
 import { Ionicons } from "@expo/vector-icons";
 import { useCallback, useEffect, useRef, useState } from "react";
