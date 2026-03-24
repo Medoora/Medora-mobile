@@ -22,6 +22,24 @@ export default function ScreenLayout () {
             header: () => null
         }}
       />
+      <Stack.Screen
+       name='help'
+       options={{
+         header: () => null
+       }}
+      />
+     <Stack.Screen
+      name='share-testi'
+      options={{
+        header: () => null
+      }}
+     />
+     <Stack.Screen
+      name="storage-anal"
+      options={{
+         header: () => null
+      }}
+      />
     </Stack>
   )
 }

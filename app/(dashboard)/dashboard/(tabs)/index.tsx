@@ -1,4 +1,4 @@
-import { getDocumentStatistics, getRecentUploads, getUserDocuments } from '@/config/firebase/services/documents';
+import { getDocumentStatistics, getRecentUploads, getUserDocuments } from '@/config/firebase/services/dashboard/documents';
 import { useAuth } from '@/context/auth-context';
 import { fileEvents } from '@/utils/events';
 import { Ionicons } from '@expo/vector-icons';

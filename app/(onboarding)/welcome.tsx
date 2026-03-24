@@ -1,6 +1,6 @@
-import { View, Text, Button, TouchableOpacity } from 'react-native'
-import React from 'react'
-import { signOutUser } from '@/config/firebase/services/auth'
+import { signOutUser } from '@/config/firebase/services/auth/auth';
+import React from 'react';
+import { Text, TouchableOpacity, View } from 'react-native';
 
 const welcome = () => {
    const handleLogout = async () => {

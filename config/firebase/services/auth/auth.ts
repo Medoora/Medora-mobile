@@ -1,20 +1,20 @@
 import {
+  AuthError,
   createUserWithEmailAndPassword,
+  GoogleAuthProvider,
+  onAuthStateChanged,
+  sendEmailVerification,
+  sendPasswordResetEmail // Added this import
+  ,
   signInWithEmailAndPassword,
+  signInWithPopup,
   signOut,
   updateProfile,
-  UserCredential,
-  AuthError,
-  onAuthStateChanged,
   User,
-  sendEmailVerification,
-  signInWithPopup,
-  GoogleAuthProvider,
-  sendPasswordResetEmail // Added this import
+  UserCredential
 } from "firebase/auth";
-import { auth } from "../config";
-import { doc, setDoc, getDoc, deleteDoc, updateDoc } from "firebase/firestore";
-import { db } from "../config";
+import { deleteDoc, doc, getDoc, setDoc, updateDoc } from "firebase/firestore";
+import { auth, db } from "../../config";
 /* import { OTPData, AuthUser } from "@/types/auth/auth-layout/types"; */
 export interface AuthUser {
   uid: string;

@@ -85,7 +85,8 @@
             "audio"
           ]
         }
-      ]
+      ],
+      "expo-mail-composer"
     ],
     "experiments": {
       "typedRoutes": true,

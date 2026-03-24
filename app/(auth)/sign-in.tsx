@@ -1,4 +1,4 @@
-import { directLogin, resetPassword } from '@/config/firebase/services/auth';
+import { directLogin, resetPassword } from '@/config/firebase/services/auth/auth';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { router } from 'expo-router';

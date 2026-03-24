@@ -1,4 +1,4 @@
-import { signOutUser } from '@/config/firebase/services/auth';
+import { signOutUser } from '@/config/firebase/services/auth/auth';
 import { useAuth } from '@/context/auth-context';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -222,7 +222,7 @@ export default function Sidebar({
                 </TouchableOpacity>
 
                 {/* Quick Actions Section */}
-                <View className="mb-6">
+               {/*  <View className="mb-6">
                   <Text className="text-neutral-500 text-xs uppercase tracking-wider mb-3">Quick Actions</Text>
                   
                   <TouchableOpacity 
@@ -235,7 +235,7 @@ export default function Sidebar({
                     <Ionicons name="cloud-upload-outline" size={20} color="#3b82f6" />
                     <Text className="text-white ml-3 font-medium">Upload New File</Text>
                   </TouchableOpacity>
-                </View>
+                </View> */}
 
                 {/* Analytics Section */}
                 <View className="mb-6">
@@ -264,7 +264,7 @@ export default function Sidebar({
 
                   <TouchableOpacity 
                     onPress={() => {
-                      onNavigate('/(screens)/storage-analytics');
+                      onNavigate('/(screens)/storage-anal');
                       handleClose();
                     }}
                     className="flex-row items-center justify-between px-4 py-3 rounded-xl bg-neutral-800/50"
@@ -384,7 +384,8 @@ export default function Sidebar({
 
                   <TouchableOpacity 
                     onPress={() => {
-                      Alert.alert('Help Center', 'Contact support: support@medora.com');
+                      onNavigate("(screens)/help")
+                      handleClose()
                     }}
                     className="flex-row items-center px-4 py-3 rounded-xl mb-2"
                   >
@@ -394,12 +395,13 @@ export default function Sidebar({
 
                   <TouchableOpacity 
                     onPress={() => {
-                      Alert.alert('Feedback', 'Send feedback to: feedback@medora.com');
+                      onNavigate("/(screens)/share-testi")
+                      handleClose()
                     }}
                     className="flex-row items-center px-4 py-3 rounded-xl mb-2"
                   >
                     <Ionicons name="chatbubble-outline" size={20} color="#737373" />
-                    <Text className="text-neutral-300 ml-3">Send Feedback</Text>
+                    <Text className="text-neutral-300 ml-3">Testimonials</Text>
                   </TouchableOpacity>
                 </View>
 
