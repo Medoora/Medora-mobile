@@ -40,6 +40,12 @@ export default function ScreenLayout () {
          header: () => null
       }}
       />
+      <Stack.Screen
+       name='notification'
+       options={{
+         header: () => null
+       }}
+      />
     </Stack>
   )
 }

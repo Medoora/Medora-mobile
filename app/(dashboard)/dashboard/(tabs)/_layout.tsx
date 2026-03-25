@@ -8,7 +8,8 @@ import { useAuth } from "@/context/auth-context";
 import { Ionicons, MaterialIcons } from "@expo/vector-icons";
 import AntDesign from "@expo/vector-icons/AntDesign";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
-import { router, Tabs, usePathname } from "expo-router";
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { router, Tabs, useFocusEffect, usePathname } from "expo-router";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
   Animated,
@@ -24,27 +25,147 @@ import { SafeAreaView } from "react-native-safe-area-context";
 
 const { width } = Dimensions.get("window");
 
+interface NotificationItem {
+  id: string;
+  title: string;
+  message: string;
+  timestamp: Date;
+  read: boolean;
+}
+
+interface Reminder {
+  id: string;
+  title: string;
+  doctor: string;
+  appointmentDate: any;
+  notes?: string;
+  status: string;
+  notified: boolean;
+  createdAt: any;
+  sendAt?: any;
+}
+
 export default function TabsLayout() {
   const [isSidebarVisible, setIsSidebarVisible] = useState(false);
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
   const [darkMode, setDarkMode] = useState(true);
+  const [unreadCount, setUnreadCount] = useState(0);
   const pathname = usePathname();
   const { user } = useAuth();
-  const [activeReminder, setActiveReminder] = useState<any>(null);
+  const [activeReminder, setActiveReminder] = useState<Reminder | null>(null);
   const notifAnim = useRef(new Animated.Value(-100)).current;
+  const badgeAnim = useRef(new Animated.Value(0)).current;
+
+  // Load unread count from storage
+  const loadUnreadCount = useCallback(async () => {
+    try {
+      const stored = await AsyncStorage.getItem('app_notifications');
+      if (stored) {
+        const notifications = JSON.parse(stored);
+        const unread = notifications.filter((n: any) => !n.read).length;
+        setUnreadCount(unread);
+        
+        // Animate badge if new notifications
+        if (unread > 0) {
+          Animated.sequence([
+            Animated.timing(badgeAnim, {
+              toValue: 1.2,
+              duration: 200,
+              useNativeDriver: true,
+            }),
+            Animated.spring(badgeAnim, {
+              toValue: 1,
+              friction: 3,
+              useNativeDriver: true,
+            }),
+          ]).start();
+        }
+      }
+    } catch (error) {
+      console.error('Error loading unread count:', error);
+    }
+  }, []);
+
+  // Reset unread count when notification screen is viewed
+  useFocusEffect(
+    useCallback(() => {
+      // Check if we're on the notification screen
+      if (pathname.includes('notification')) {
+        const resetUnreadCount = async () => {
+          try {
+            const stored = await AsyncStorage.getItem('app_notifications');
+            if (stored) {
+              const notifications = JSON.parse(stored);
+              const updated = notifications.map((n: any) => ({ ...n, read: true }));
+              await AsyncStorage.setItem('app_notifications', JSON.stringify(updated));
+              setUnreadCount(0);
+            }
+          } catch (error) {
+            console.error('Error resetting unread count:', error);
+          }
+        };
+        resetUnreadCount();
+      }
+    }, [pathname])
+  );
+
+  // Save notification and update count
+  const addNotification = useCallback(async (notification: Omit<NotificationItem, 'id' | 'timestamp' | 'read'>) => {
+    const newNotification: NotificationItem = {
+      ...notification,
+      id: Date.now().toString(),
+      timestamp: new Date(),
+      read: false,
+    };
+    
+    try {
+      const stored = await AsyncStorage.getItem('app_notifications');
+      const notifications = stored ? JSON.parse(stored) : [];
+      const updated = [newNotification, ...notifications];
+      await AsyncStorage.setItem('app_notifications', JSON.stringify(updated));
+      
+      const newUnreadCount = updated.filter((n: any) => !n.read).length;
+      setUnreadCount(newUnreadCount);
+      
+      // Animate badge
+      Animated.sequence([
+        Animated.timing(badgeAnim, {
+          toValue: 1.2,
+          duration: 200,
+          useNativeDriver: true,
+        }),
+        Animated.spring(badgeAnim, {
+          toValue: 1,
+          friction: 3,
+          useNativeDriver: true,
+        }),
+      ]).start();
+    } catch (error) {
+      console.error('Error saving notification:', error);
+    }
+  }, []);
+
+  useEffect(() => {
+    loadUnreadCount();
+  }, []);
+
+  // Dismiss active reminder animation
+  const dismissReminder = useCallback(() => {
+    Animated.timing(notifAnim, {
+      toValue: -100,
+      duration: 300,
+      useNativeDriver: true,
+    }).start(() => {
+      setActiveReminder(null);
+    });
+  }, []);
 
   useEffect(() => {
     if (!activeReminder) return;
 
     const timer = setTimeout(() => {
-      Animated.timing(notifAnim, {
-        toValue: -100,
-        duration: 300,
-        useNativeDriver: true,
-      }).start(async () => {
-        setActiveReminder(null);
-      });
+      dismissReminder();
     }, 5000);
 
     return () => clearTimeout(timer);
@@ -54,32 +175,42 @@ export default function TabsLayout() {
     if (!user?.uid) return;
 
     const interval = setInterval(async () => {
-      const reminders = await getUserReminders(user.uid);
+      try {
+        const reminders = await getUserReminders(user.uid);
+        const now = new Date();
 
-      const now = new Date();
+        const dueReminders = reminders.filter((r: any) => {
+          const sendAt = r.sendAt?.toDate?.();
+          return sendAt && sendAt <= now && !r.notified && r.status === "active";
+        });
 
-      const dueReminders = reminders.filter((r: any) => {
-        const sendAt = r.sendAt?.toDate?.();
-        return sendAt && sendAt <= now && !r.notified && r.status === "active";
-      });
+        const due = dueReminders[0] as Reminder | undefined;
 
-      const due = dueReminders[0];
-
-      if (due && !activeReminder) {
-        Vibration.vibrate(300);
-        await markReminderNotified(due.id);
-        setActiveReminder(due);
-        notifAnim.setValue(-100);
-        Animated.timing(notifAnim, {
-          toValue: 0,
-          duration: 400,
-          useNativeDriver: true,
-        }).start();
+        if (due && !activeReminder) {
+          Vibration.vibrate(300);
+          await markReminderNotified(due.id);
+          
+          // Add to in-app notifications
+          await addNotification({
+            title: due.title,
+            message: `Reminder: ${due.title} with Dr. ${due.doctor}`,
+          });
+          
+          setActiveReminder(due);
+          notifAnim.setValue(-100);
+          Animated.timing(notifAnim, {
+            toValue: 0,
+            duration: 400,
+            useNativeDriver: true,
+          }).start();
+        }
+      } catch (error) {
+        console.error('Error checking reminders:', error);
       }
     }, 5000);
 
     return () => clearInterval(interval);
-  }, [user?.uid]);
+  }, [user?.uid, activeReminder, addNotification]);
 
   const openUploadModal = useCallback(() => {
     setIsUploadModalOpen(true);
@@ -113,7 +244,7 @@ export default function TabsLayout() {
 
   return (
     <View className="flex-1 bg-neutral-950">
-      {/* Reminder Notification */}
+      {/* Reminder Popup Notification */}
       {activeReminder && (
         <Animated.View
           style={{
@@ -128,7 +259,7 @@ export default function TabsLayout() {
                 Reminder Alert
               </Text>
             </View>
-            <TouchableOpacity onPress={() => setActiveReminder(null)}>
+            <TouchableOpacity onPress={dismissReminder}>
               <Ionicons name="close" size={18} color="#aaa" />
             </TouchableOpacity>
           </View>
@@ -137,7 +268,7 @@ export default function TabsLayout() {
               {activeReminder.title}
             </Text>
             <Text className="text-neutral-400 text-sm mt-1">
-              {activeReminder.doctor}
+              Dr. {activeReminder.doctor}
             </Text>
             <Text className="text-neutral-500 text-xs mt-2">
               {activeReminder.appointmentDate?.toDate?.().toLocaleString()}
@@ -149,15 +280,7 @@ export default function TabsLayout() {
             )}
           </View>
           <TouchableOpacity
-            onPress={async () => {
-              Animated.timing(notifAnim, {
-                toValue: -100,
-                duration: 300,
-                useNativeDriver: true,
-              }).start(async () => {
-                setActiveReminder(null);
-              });
-            }}
+            onPress={dismissReminder}
             className="mt-4 bg-blue-500 py-2 rounded-lg items-center"
           >
             <Text className="text-white text-sm font-medium">Dismiss</Text>
@@ -185,14 +308,33 @@ export default function TabsLayout() {
 
             {currentTab === "Dashboard" ? (
               <TouchableOpacity
-                onPress={() => console.log("AI Assistant")}
-                className="w-10 h-10 items-center justify-center"
+                onPress={() => {
+                  router.push("/(screens)/notification");
+                }}
+                className="w-10 h-10 items-center justify-center relative"
               >
-                <MaterialIcons
-                  name="notifications"
-                  size={24}
-                  color="white"
-                />
+                <MaterialIcons name="notifications" size={24} color="white" />
+                {unreadCount > 0 && (
+                  <Animated.View 
+                    style={{
+                      transform: [{ scale: badgeAnim }],
+                      position: 'absolute',
+                      top: 2,
+                      right: 2,
+                      backgroundColor: '#ef4444',
+                      borderRadius: 10,
+                      minWidth: 18,
+                      height: 18,
+                      justifyContent: 'center',
+                      alignItems: 'center',
+                      paddingHorizontal: 4,
+                    }}
+                  >
+                    <Text className="text-white text-[10px] font-bold">
+                      {unreadCount > 99 ? '99+' : unreadCount}
+                    </Text>
+                  </Animated.View>
+                )}
               </TouchableOpacity>
             ) : (
               <View className="w-10 h-10" />
@@ -273,27 +415,25 @@ export default function TabsLayout() {
             <Tabs.Screen
               name="health-bot"
               options={{
-    tabBarIcon: ({ color, focused }) => {
-      const activeColor = focused ? "#EB4C4C" : color;
-
-      return (
-        <View className="items-center">
-          <MaterialCommunityIcons
-                  name={focused ? "robot-love" : "robot-angry-outline"}
-                  size={24}
-                  color={activeColor}
-                />
-        </View>
-      );
-    },
-  }}
+                tabBarIcon: ({ color, focused }) => {
+                  const activeColor = focused ? "#EB4C4C" : color;
+                  return (
+                    <View className="items-center">
+                      <MaterialCommunityIcons
+                        name={focused ? "robot-love" : "robot-angry-outline"}
+                        size={24}
+                        color={activeColor}
+                      />
+                    </View>
+                  );
+                },
+              }}
             />
 
             <Tabs.Screen
               name="settings"
               options={{
                 tabBarIcon: ({ color, focused }) => (
-                
                   <View className="items-center">
                     <Ionicons
                       name={focused ? "settings" : "settings-outline"}

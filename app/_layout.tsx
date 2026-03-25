@@ -9,6 +9,7 @@ import {
 import { Stack } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { ActivityIndicator, View } from "react-native";
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import "react-native-reanimated";
 import "../global.css";
 
@@ -43,7 +44,9 @@ function RootLayoutNav() {
 export default function RootLayout() {
   return (
     <AuthProvider>
-      <RootLayoutNav />
+     <GestureHandlerRootView style={{flex: 1}} >
+       <RootLayoutNav />
+     </GestureHandlerRootView>
     </AuthProvider>
   );
 }
