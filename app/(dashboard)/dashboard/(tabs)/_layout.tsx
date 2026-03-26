@@ -1,4 +1,5 @@
 import UploadModal from "@/components/modal/upload-modal";
+import BotSidebar from "@/components/sidebar/chat-sidebar";
 import Sidebar from "@/components/sidebar/sidebar";
 import {
   getUserReminders,
@@ -47,6 +48,7 @@ interface Reminder {
 
 export default function TabsLayout() {
   const [isSidebarVisible, setIsSidebarVisible] = useState(false);
+  const [isBotbarVisible, setIsBotbarVisible] = useState(false)
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
   const [darkMode, setDarkMode] = useState(true);
@@ -227,7 +229,9 @@ export default function TabsLayout() {
   const closeSidebar = useCallback(() => {
     setIsSidebarVisible(false);
   }, []);
-
+ const closeBotBar = useCallback(() => {
+     setIsBotbarVisible(false)
+ },[])
   const handleNavigate = useCallback((route: string) => {
     router.push(route as any);
   }, []);
@@ -305,7 +309,7 @@ export default function TabsLayout() {
             <Text className="text-white text-lg font-semibold">
               {currentTab}
             </Text>
-
+            
             {currentTab === "Dashboard" ? (
               <TouchableOpacity
                 onPress={() => {
@@ -336,9 +340,21 @@ export default function TabsLayout() {
                   </Animated.View>
                 )}
               </TouchableOpacity>
-            ) : (
+            ) : currentTab === 'MediTalk' ? (
+            <TouchableOpacity
+                onPress={() => {
+                   setIsBotbarVisible(true)
+                }}
+                className="w-10 h-10 items-center justify-center relative"
+              >
+                <Ionicons name="chatbox" size={20} color="white" />
+              </TouchableOpacity>
+            
+            ): (
               <View className="w-10 h-10" />
-            )}
+            )
+            
+            }
           </View>
         </SafeAreaView>
 
@@ -350,12 +366,12 @@ export default function TabsLayout() {
               tabBarInactiveTintColor: "#525252",
               tabBarStyle: {
                 backgroundColor: "#0a0a0a",
-                borderTopWidth: 0,
+                borderTopWidth: 1,
                 elevation: 0,
                 shadowOpacity: 0,
                 height: Platform.OS === "ios" ? 80 : 60,
                 paddingBottom: Platform.OS === "ios" ? 25 : 10,
-                paddingTop: 20,
+                paddingTop: 10,
                 paddingLeft: 10,
                 paddingRight: 10,
                 borderTopColor: "#262626",
@@ -465,7 +481,11 @@ export default function TabsLayout() {
           onUploadSuccess={handleUpload}
         />
       </View>
-
+      {/* Chatbot sidebar */}
+      <BotSidebar
+        isVisible={isBotbarVisible}
+        onClose={closeBotBar}
+      />
       {/* Reusable Sidebar */}
       <Sidebar
         isVisible={isSidebarVisible}
