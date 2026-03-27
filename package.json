@@ -11,6 +11,7 @@
     "lint": "expo lint"
   },
   "dependencies": {
+    "@ai-sdk/openai": "^3.0.48",
     "@expo/vector-icons": "^15.1.1",
     "@react-native-async-storage/async-storage": "2.2.0",
     "@react-native-community/datetimepicker": "8.4.4",
@@ -18,6 +19,7 @@
     "@react-navigation/elements": "^2.6.3",
     "@react-navigation/native": "^7.1.8",
     "@shopify/flash-list": "2.0.2",
+    "ai": "^6.0.140",
     "babel-preset-expo": "^55.0.10",
     "date-fns": "^4.1.0",
     "expo": "~54.0.33",
