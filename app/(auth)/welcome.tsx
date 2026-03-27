@@ -1,120 +1,214 @@
-import { View, Text, TouchableOpacity, ActivityIndicator, Image } from 'react-native';
 import { FontAwesome } from '@expo/vector-icons';
-import { router } from 'expo-router';
-import { Video, ResizeMode } from 'expo-av';
-import { useRef, useState, useEffect } from 'react';
 import { LinearGradient } from 'expo-linear-gradient';
+import { router } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
+import { useVideoPlayer, VideoView } from 'expo-video';
+import { useEffect, useMemo, useState } from 'react';
+import {
+  ActivityIndicator,
+  Image,
+  Text,
+  TouchableOpacity,
+  View,
+} from 'react-native';
 
 export default function WelcomeScreen() {
-  const videoRef = useRef(null);
   const [isVideoLoaded, setIsVideoLoaded] = useState(false);
-  const [videoSource, setVideoSource] = useState(null);
 
-  // Array of your three videos
-  const videos = [
+  // ✅ Stable random video (runs once)
+  const videoSource = useMemo(() => {
+   const videos = [
     require('@/assets/videos/med-into-1.mp4'),
     require('@/assets/videos/med-intro-2.mp4'),
     require('@/assets/videos/med-intro-3.mp4')
   ];
-
-  // Pick a random video when component mounts
-  useEffect(() => {
-    const randomIndex = Math.floor(Math.random() * videos.length);
-    setVideoSource(videos[randomIndex]);
+    return videos[Math.floor(Math.random() * videos.length)];
   }, []);
 
+  // ✅ Initialize player
+  const player = useVideoPlayer(videoSource);
+
+  // ✅ Proper lifecycle handling
+  useEffect(() => {
+    if (!player) return;
+
+    player.loop = true;
+    player.muted = true;
+    player.play();
+
+    const sub = player.addListener('statusChange', ({ status }) => {
+      if (status === 'readyToPlay') {
+        setIsVideoLoaded(true);
+      }
+    });
+
+    return () => {
+      sub.remove();
+    };
+  }, [player]);
+
   return (
-    <View className="flex-1 bg-black">
+    <View style={{ flex: 1, backgroundColor: 'black' }}>
       <StatusBar style="light" />
-      
-      {/* Show loading indicator while video is being selected/loaded */}
-      {(!videoSource || !isVideoLoaded) && (
-        <View className="absolute inset-0 justify-center items-center z-20">
+
+      {/* ✅ Loader */}
+      {!isVideoLoaded && (
+        <View
+          style={{
+            position: 'absolute',
+            inset: 0,
+            justifyContent: 'center',
+            alignItems: 'center',
+            zIndex: 20,
+          }}
+        >
           <ActivityIndicator size="large" color="#ffffff" />
-          <Text className="text-white/70 mt-2">Loading experience...</Text>
+          <Text style={{ color: 'rgba(255,255,255,0.7)', marginTop: 8 }}>
+            Loading experience...
+          </Text>
         </View>
       )}
-      
-      {/* Video Background - Only render when we have a source */}
-      {videoSource && (
-        <Video
-          ref={videoRef}
-          source={videoSource}
-          className="absolute top-0 left-0 right-0 bottom-0"
-          resizeMode={ResizeMode.COVER}
-          shouldPlay
-          isLooping
-          isMuted={true}
-          onLoad={() => setIsVideoLoaded(true)}
-          style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}
-        />
-      )}
-      
-      {/* Dark Gradient Overlay - Always visible */}
-      <LinearGradient
-        colors={['transparent', 'rgba(0,0,0,0.7)', 'rgba(0,0,0,0.95)']}
-        className="absolute top-0 left-0 right-0 bottom-0"
-        start={{ x: 0, y: 0 }}
-        end={{ x: 0, y: 1 }}
-        style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}
+
+      {/* ✅ Video Background */}
+      <VideoView
+        player={player}
+        style={{
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+        }}
+        contentFit="cover"
       />
 
-      {/* Content - Always visible */}
-      <View className="absolute top-0 left-0 right-0 bottom-0 px-6 py-12">
-        {/* Logo at the top */}
-        <View className="items-center mt-12">
+      {/* ✅ Gradient Overlay */}
+      <LinearGradient
+        colors={['transparent', 'rgba(0,0,0,0.7)', 'rgba(0,0,0,0.95)']}
+        style={{
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+        }}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 0, y: 1 }}
+      />
+
+      {/* ✅ Content */}
+      <View
+        style={{
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          paddingHorizontal: 24,
+          paddingVertical: 48,
+        }}
+      >
+        {/* Logo */}
+        <View style={{ alignItems: 'center', marginTop: 48 }}>
           <Image
-            source={require("@/assets/logo/3.png")}
-            className="w-44 h-44"
+            source={require('../../assets/logo/3.png')}
+            style={{ width: 176, height: 176 }}
             resizeMode="contain"
           />
-          
         </View>
 
-        {/* Center content - using flex-1 to push buttons to bottom */}
-        <View className="flex-1 justify-center">
-         
-        </View>
-        
-        {/* Bottom Buttons */}
-        <View className="w-full">
-         <TouchableOpacity
-  onPress={() => router.push('/(auth)/sign-up')}
-  className="bg-white py-4 px-6 rounded-2xl shadow-lg flex-row items-center justify-center w-full"
-  activeOpacity={0.9}
-  style={{
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-  }}
->
-  <FontAwesome name="apple" size={22} color="#000000" />
-  <Text className="text-black text-center font-medium text-base ml-3">
-    Connect to Apple
-  </Text>
-</TouchableOpacity>
-  <TouchableOpacity
-   onPress={() => router.push('/(auth)/sign-up')}
-  className="bg-neutral-800/60 py-4 px-6 mt-4 rounded-2xl shadow-lg flex-row items-center justify-center w-full"
-  >
-    <Text className='text-white font-medium'>Other options</Text>
-  </TouchableOpacity>
-          
+        {/* Spacer */}
+        <View style={{ flex: 1 }} />
+
+        {/* Buttons */}
+        <View style={{ width: '100%' }}>
+          {/* Apple */}
           <TouchableOpacity
-            onPress={() => router.push('/(auth)/sign-in')}
-            className="mt-4 py-2"
+            onPress={() => router.push('/(auth)/sign-up')}
+            activeOpacity={0.9}
+            style={{
+              backgroundColor: '#fff',
+              paddingVertical: 16,
+              paddingHorizontal: 24,
+              borderRadius: 16,
+              flexDirection: 'row',
+              justifyContent: 'center',
+              alignItems: 'center',
+              shadowColor: '#000',
+              shadowOffset: { width: 0, height: 2 },
+              shadowOpacity: 0.1,
+              shadowRadius: 4,
+              elevation: 3,
+            }}
           >
-            <Text className="text-white/80 text-center">
-              Already have an account?{' '}
-              <Text className="text-white font-bold">Sign In</Text>
+            <FontAwesome name="apple" size={22} color="#000" />
+            <Text
+              style={{
+                color: '#000',
+                fontWeight: '500',
+                fontSize: 16,
+                marginLeft: 12,
+              }}
+            >
+              Connect to Apple
             </Text>
           </TouchableOpacity>
-          
-          <Text className="text-white/50 text-center font-medium text-xs tracking-wide mt-4">
-           By signing up, you agrees to our <Text className='font-semibold text-white'>Terms of Service</Text> and your <Text className='font-semibold text-white'>Privacy Policy.</Text>
+
+          {/* Other options */}
+          <TouchableOpacity
+            onPress={() => router.push('/(auth)/sign-up')}
+            style={{
+              backgroundColor: 'rgba(38,38,38,0.6)',
+              paddingVertical: 16,
+              paddingHorizontal: 24,
+              marginTop: 16,
+              borderRadius: 16,
+              justifyContent: 'center',
+              alignItems: 'center',
+            }}
+          >
+            <Text style={{ color: '#fff', fontWeight: '500' }}>
+              Other options
+            </Text>
+          </TouchableOpacity>
+
+          {/* Sign in */}
+          <TouchableOpacity
+            onPress={() => router.push('/(auth)/sign-in')}
+            style={{ marginTop: 16, paddingVertical: 8 }}
+          >
+            <Text
+              style={{
+                color: 'rgba(255,255,255,0.8)',
+                textAlign: 'center',
+              }}
+            >
+              Already have an account?{' '}
+              <Text style={{ color: '#fff', fontWeight: 'bold' }}>
+                Sign In
+              </Text>
+            </Text>
+          </TouchableOpacity>
+
+          {/* Terms */}
+          <Text
+           className='text-xs'
+            style={{
+              color: 'rgba(255,255,255,0.5)',
+              textAlign: 'center',
+              fontSize: 10,
+              marginTop: 16,
+            }}
+          >
+            signing up, you agree to our{' '}
+            <Text className='text-xs' style={{ color: '#fff', fontWeight: '600' }}>
+              Terms of Service
+            </Text>{' '}
+            and{' '}
+            <Text className='text-xs' style={{ color: '#fff', fontWeight: '600' }}>
+              Privacy Policy
+            </Text>
+            .
           </Text>
         </View>
       </View>

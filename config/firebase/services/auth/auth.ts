@@ -1,13 +1,14 @@
 import {
   AuthError,
   createUserWithEmailAndPassword,
-  GoogleAuthProvider,
   onAuthStateChanged,
   sendEmailVerification,
   sendPasswordResetEmail // Added this import
   ,
+
+
   signInWithEmailAndPassword,
-  signInWithPopup,
+  /* signInWithPopup */
   signOut,
   updateProfile,
   User,
@@ -588,7 +589,7 @@ export async function verifyOTPAndLogin(
 }
 
 // Google login - UPDATED to store user data
-export async function loginWithGoogle(): Promise<{ 
+/* export async function loginWithGoogle(): Promise<{ 
   success: boolean; 
   user?: User;
   authUser?: AuthUser;
@@ -634,7 +635,7 @@ export async function loginWithGoogle(): Promise<{
     
     return { success: false, error: errorMessage };
   }
-}
+} */
 
 // Direct email/password login - NEW function
 export async function directLogin(
