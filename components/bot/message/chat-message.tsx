@@ -18,9 +18,18 @@ interface ChatMessageProps {
 export default function ChatMessage({ message, onDownloadPDF }: ChatMessageProps) {
   const isUser = message.role === 'user';
 
-  const formatTime = (date: Date) => {
-    return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-  };
+ const formatTime = (date?: string | Date) => {
+  if (!date) return '';
+
+  const d = typeof date === 'string' ? new Date(date) : date;
+
+  if (isNaN(d.getTime())) return '';
+
+  return d.toLocaleTimeString([], {
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+};
 
   return (
     <View className={`flex-row mb-3 ${isUser ? 'justify-end' : 'justify-start'}`}>

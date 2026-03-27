@@ -9,7 +9,8 @@ import {
   View, 
   ScrollView,
   TextInput,
-  Alert
+  Alert,
+  Image
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -48,7 +49,12 @@ export default function BotSidebar({
   const slideAnim = useRef(new Animated.Value(SIDEBAR_WIDTH)).current; // Start from right
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editingTitle, setEditingTitle] = useState('');
-
+  const scrollY = useRef(new Animated.Value(0)).current;
+  const headerOpacity = scrollY.interpolate({
+    inputRange: [0, 50],
+    outputRange: [1, 0.95],
+    extrapolate: 'clamp',
+  });
   useEffect(() => {
     if (isVisible) {
       Animated.timing(slideAnim, {
@@ -135,15 +141,29 @@ export default function BotSidebar({
         >
           <SafeAreaView className="flex-1">
             {/* Header */}
-            <View className="flex-row justify-between items-center px-4 py-4 border-b border-neutral-800">
-              <Text className="text-white text-base font-medium">Chat History</Text>
-              <TouchableOpacity 
-                onPress={handleClose}
-                className="w-8 h-8 items-center justify-center rounded-full bg-neutral-800"
-              >
-                <Ionicons name="close" size={18} color="#a1a1aa" />
-              </TouchableOpacity>
-            </View>
+            <Animated.View 
+                         style={{ 
+                           opacity: headerOpacity,
+                           backgroundColor: '#0a0a0a',
+                           borderBottomColor: '#262626',
+                           zIndex: 10,
+                         }}
+                       >
+                         <View className="px-4 pt-2 pb-4">
+                           <View className="flex-row justify-between items-center">
+                             <View className='flex-row items-center'>
+                               <Image
+                                 source={require("@/assets/logo/meditalk.png")}
+                                 className='w-14 h-14'
+                               />
+                               <Text className="text-white text-xl font-medium -ml-2">Meditalk</Text> 
+                             </View>
+                             <TouchableOpacity onPress={handleClose} className="w-10 h-10 items-center justify-center">
+                               <Ionicons name="close" size={24} color="#a1a1aa" />
+                             </TouchableOpacity>
+                           </View>
+                         </View>
+                       </Animated.View>
 
             {/* New Chat Button */}
             <TouchableOpacity
