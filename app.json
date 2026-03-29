@@ -82,7 +82,9 @@
       "expo-mail-composer",
       "expo-font",
       "expo-web-browser",
-      "expo-video"
+      "expo-video",
+      "expo-audio",
+      "expo-asset"
     ],
     "experiments": {
       "typedRoutes": true,

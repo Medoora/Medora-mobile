@@ -107,7 +107,6 @@ export default function UploadModal({ visible, onClose, onUpload, onUploadSucces
 
 const handleFilePick = async () => {
   try {
-    // Show action sheet to choose between Photos and Files
     Alert.alert(
       'Select Source',
       'Choose where to pick your file from',
@@ -117,7 +116,8 @@ const handleFilePick = async () => {
           onPress: async () => {
             try {
               const result = await ImagePicker.launchImageLibraryAsync({
-                mediaTypes: ImagePicker.MediaTypeOptions.All, // Use MediaTypeOptions instead of MediaType
+                
+                mediaTypes: ImagePicker.MediaTypeOptions.All,
                 allowsEditing: true,
                 quality: 1,
                 allowsMultipleSelection: false,
