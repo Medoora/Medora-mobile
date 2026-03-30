@@ -1,17 +1,15 @@
-import { 
-  collection, 
-  addDoc, 
-  query, 
-  where, 
-  orderBy, 
-  getDocs, 
-  Timestamp, 
-  limit,
+import {
+  addDoc,
+  collection,
   doc,
+  getDocs,
+  limit,
+  orderBy,
+  query,
+  Timestamp,
   updateDoc,
-  deleteDoc,
-  writeBatch,
-  getDoc
+  where,
+  writeBatch
 } from 'firebase/firestore';
 import { db } from '../../config';
 
@@ -43,6 +41,7 @@ export interface ChatHistoryFilters {
   role?: 'user' | 'assistant';
   model?: string;
   limit?: number;
+  orderBy?: 'asc' | 'desc';
 }
 
 class ChatHistoryService {

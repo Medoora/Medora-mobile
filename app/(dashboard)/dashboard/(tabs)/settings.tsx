@@ -1,3 +1,4 @@
+import CustomDialogBox from '@/components/Custom-Dialog/Cus-dialog';
 import { auth, db } from '@/config/firebase/config';
 import { signOutUser } from '@/config/firebase/services/auth/auth';
 import { useAuth } from '@/context/auth-context';
@@ -22,6 +23,7 @@ export default function SettingsScreen() {
   // Profile form state
   const [displayName, setDisplayName] = useState(user?.displayName || '');
   const [isUpdatingProfile, setIsUpdatingProfile] = useState(false);
+  const [isLogoutDialogVisible, setIsLogoutDialogVisible] = useState(false)
   const [isSendingReset, setIsSendingReset] = useState(false);
   const [resetEmailSent, setResetEmailSent] = useState(false);
   const [showEmail, setShowEmail] = useState(false);
@@ -92,11 +94,8 @@ export default function SettingsScreen() {
     }
   };
 
-  const handleSignOut = () => {
-    Alert.alert('Sign Out', 'Are you sure you want to sign out?', [
-      { text: 'Cancel', style: 'cancel' },
-      { text: 'Sign Out', style: 'destructive', onPress: signOutUser },
-    ]);
+  const handleSignOut = async ()  => {
+    await signOutUser()
   };
 
   const formatDate = (timestamp: any) => {
@@ -136,6 +135,7 @@ export default function SettingsScreen() {
   }
 
   return (
+  <>
     <ScrollView className="flex-1 bg-black" showsVerticalScrollIndicator={false}>
       <View className="px-4 pt-4 pb-8">
         {/* Profile Header */}
@@ -283,7 +283,9 @@ export default function SettingsScreen() {
         {/* Sign Out Button */}
         <View className="mt-4 pt-4">
           <TouchableOpacity
-            onPress={handleSignOut}
+            onPress={() => {
+               setIsLogoutDialogVisible(true)
+            }}
             className="py-4 rounded-xl bg-neutral-900 active:bg-neutral-800"
           >
             <Text className="text-red-500 text-center text-base font-medium">Sign Out</Text>
@@ -291,5 +293,20 @@ export default function SettingsScreen() {
         </View>
       </View>
     </ScrollView>
+    <CustomDialogBox
+    actionButtonName='Logout'
+     message='Are You Sure You Want to SignOut ?'
+     title={`Sign out ${user?.displayName}`}
+     visible={isLogoutDialogVisible}
+     onCancel={() => {
+       setIsLogoutDialogVisible(false)
+     }}
+     onConfirm={() => {
+       handleSignOut()
+       setIsLogoutDialogVisible(false)
+     }}
+     
+    />
+  </>
   );
 }

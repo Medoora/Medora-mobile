@@ -1,6 +1,6 @@
-import { useState, useCallback } from 'react';
-import { useAuth } from "@/context/auth-context"
-import { ChatHistoryFilters, chatHistoryService, ChatMessageMetadata } from  '@/config/firebase/services/chat/service'
+import { ChatHistoryFilters, chatHistoryService, ChatMessageMetadata } from '@/config/firebase/services/chat/service';
+import { useAuth } from "@/context/auth-context";
+import { useCallback, useState } from 'react';
 
 
 export const useChatHistory = () => {
@@ -71,26 +71,42 @@ export const useChatHistory = () => {
   /**
    * Load chat history with filters
    */
-  const loadHistory = useCallback(async (
-    filters: ChatHistoryFilters = {}
-  ): Promise<ChatMessageMetadata[]> => {
-    if (!user) {
-      return [];
-    }
+ /**
+ * Load chat history with filters
+ */
+const loadHistory = useCallback(async (
+  filters: ChatHistoryFilters = {}
+): Promise<ChatMessageMetadata[]> => {
+  if (!user) {
+    return [];
+  }
 
-    setIsLoading(true);
-    setError(null);
+  setIsLoading(true);
+  setError(null);
 
-    try {
-      const history = await chatHistoryService.getChatHistory(user.uid, filters);
-      return history;
-    } catch (err) {
-      setError(err as Error);
-      return [];
-    } finally {
-      setIsLoading(false);
+  try {
+    const history = await chatHistoryService.getChatHistory(user.uid, filters);
+    
+    // Sort based on orderBy parameter if provided
+    if (filters.orderBy === 'asc') {
+      return history.sort((a, b) => 
+        (a.timestamp?.getTime() || 0) - (b.timestamp?.getTime() || 0)
+      );
+    } else if (filters.orderBy === 'desc') {
+      return history.sort((a, b) => 
+        (b.timestamp?.getTime() || 0) - (a.timestamp?.getTime() || 0)
+      );
     }
-  }, [user]);
+    
+    // Return as-is if no order specified
+    return history;
+  } catch (err) {
+    setError(err as Error);
+    return [];
+  } finally {
+    setIsLoading(false);
+  }
+}, [user]);
 
   /**
    * Load today's chat history
