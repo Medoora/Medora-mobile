@@ -1,6 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
-import React from 'react';
-import { View, Text, TouchableOpacity } from 'react-native';
+import * as Clipboard from 'expo-clipboard';
+import React, { useEffect, useRef, useState } from 'react';
+import { Animated, Text, TouchableOpacity, View } from 'react-native';
 import Markdown from 'react-native-markdown-display';
 
 interface Message {
@@ -13,48 +14,119 @@ interface Message {
 interface ChatMessageProps {
   message: Message;
   onDownloadPDF?: (message: Message) => void;
+  isStreaming?: boolean;
 }
 
-export default function ChatMessage({ message, onDownloadPDF }: ChatMessageProps) {
+export default function ChatMessage({ message, onDownloadPDF, isStreaming = false }: ChatMessageProps) {
   const isUser = message.role === 'user';
+  const [showActions, setShowActions] = useState(false);
+  const [copied, setCopied] = useState(false);
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+  const pulseAnim = useRef(new Animated.Value(1)).current;
 
- const formatTime = (date?: string | Date) => {
-  if (!date) return '';
+  useEffect(() => {
+    // Pulse animation for streaming/loading state
+    if (isStreaming && !isUser) {
+      Animated.loop(
+        Animated.sequence([
+          Animated.timing(pulseAnim, {
+            toValue: 0.5,
+            duration: 500,
+            useNativeDriver: true,
+          }),
+          Animated.timing(pulseAnim, {
+            toValue: 1,
+            duration: 500,
+            useNativeDriver: true,
+          }),
+        ])
+      ).start();
+    } else {
+      pulseAnim.setValue(1);
+    }
 
-  const d = typeof date === 'string' ? new Date(date) : date;
+    // Show actions with fade animation when streaming completes
+    if (!isUser && !isStreaming && message.content) {
+      setTimeout(() => {
+        Animated.timing(fadeAnim, {
+          toValue: 1,
+          duration: 300,
+          useNativeDriver: true,
+        }).start();
+        setShowActions(true);
+      }, 500);
+    } else if (isStreaming) {
+      setShowActions(false);
+      fadeAnim.setValue(0);
+    }
+  }, [isStreaming, message.content]);
 
-  if (isNaN(d.getTime())) return '';
+  const formatTime = (date?: string | Date) => {
+    if (!date) return '';
+    const d = typeof date === 'string' ? new Date(date) : date;
+    if (isNaN(d.getTime())) return '';
+    return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  };
 
-  return d.toLocaleTimeString([], {
-    hour: '2-digit',
-    minute: '2-digit',
-  });
-};
+  const handleCopy = async () => {
+    await Clipboard.setStringAsync(message.content);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
 
-  return (
-    <View className={`flex-row mb-3 ${isUser ? 'justify-end' : 'justify-start'}`}>
-      <View
-        className={`max-w-[85%] rounded-2xl px-4 py-2.5 ${
-          isUser ? 'bg-blue-600' : 'bg-neutral-800'
-        }`}
-      >
-        {isUser ? (
+  if (isUser) {
+    // User message - simple bubble
+    return (
+      <View className="flex-row justify-end mb-4">
+        <View className="bg-neutral-800 rounded-2xl rounded-br-sm px-4 py-2 max-w-[85%]">
           <Text className="text-white text-base leading-5">{message.content}</Text>
-        ) : (
+          <Text className="text-blue-200/60 text-[10px] mt-1 text-right">
+            {formatTime(message.timestamp)}
+          </Text>
+        </View>
+      </View>
+    );
+  }
+
+  // Assistant message - ChatGPT style
+  return (
+    <View className="flex-row justify-start mb-6">
+      {/* Avatar */}
+      <View className="w-8 h-8 rounded-full items-center justify-center mr-3 mt-3">
+        <Ionicons name="chatbubble-ellipses-outline" size={16} color="#3b82f6" />
+      </View>
+
+      {/* Content */}
+      <View className="flex-1">
+        {/* Loading Pulse Animation */}
+        {isStreaming && !message.content && (
+          <Animated.View 
+            style={{ opacity: pulseAnim }}
+            className="flex-row items-center gap-1"
+          >
+            <View className="w-2 h-2 bg-blue-400 rounded-full" />
+            <View className="w-2 h-2 bg-blue-400 rounded-full" />
+            <View className="w-2 h-2 bg-blue-400 rounded-full" />
+            <Text className="text-neutral-400 text-sm ml-2">Thinking</Text>
+          </Animated.View>
+        )}
+
+        {/* Message Content */}
+        {message.content ? (
           <>
             <Markdown
               style={{
-                body: { color: '#e5e5e5', fontSize: 15, lineHeight: 22 },
-                heading1: { color: 'white', fontSize: 22, fontWeight: 'bold', marginTop: 12, marginBottom: 6 },
-                heading2: { color: 'white', fontSize: 18, fontWeight: 'bold', marginTop: 10, marginBottom: 4 },
-                heading3: { color: 'white', fontSize: 16, fontWeight: 'bold', marginTop: 8, marginBottom: 3 },
-                paragraph: { marginBottom: 8 },
-                list_item: { marginVertical: 2 },
+                body: { color: '#e5e5e5', fontSize: 15, lineHeight: 24 },
+                heading1: { color: 'white', fontSize: 24, fontWeight: 'bold', marginTop: 16, marginBottom: 8 },
+                heading2: { color: 'white', fontSize: 20, fontWeight: 'bold', marginTop: 14, marginBottom: 6 },
+                heading3: { color: 'white', fontSize: 18, fontWeight: 'bold', marginTop: 12, marginBottom: 4 },
+                paragraph: { marginBottom: 12 },
+                list_item: { marginVertical: 4 },
                 code_block: { 
                   backgroundColor: '#1e1e1e', 
-                  padding: 10, 
+                  padding: 12, 
                   borderRadius: 8,
-                  marginVertical: 8,
+                  marginVertical: 10,
                 },
                 code_inline: { 
                   backgroundColor: '#1e1e1e', 
@@ -63,45 +135,56 @@ export default function ChatMessage({ message, onDownloadPDF }: ChatMessageProps
                   borderRadius: 4,
                   fontSize: 13,
                 },
-                table: { borderWidth: 1, borderColor: '#404040', marginVertical: 8 },
+                table: { borderWidth: 1, borderColor: '#404040', marginVertical: 12 },
                 th: { 
                   borderWidth: 1, 
                   borderColor: '#404040', 
-                  padding: 8, 
+                  padding: 10, 
                   backgroundColor: '#2d2d2d',
                   fontWeight: 'bold',
                 },
-                td: { borderWidth: 1, borderColor: '#404040', padding: 8 },
+                td: { borderWidth: 1, borderColor: '#404040', padding: 10 },
                 blockquote: {
                   borderLeftWidth: 3,
                   borderLeftColor: '#3b82f6',
-                  paddingLeft: 12,
-                  marginVertical: 8,
+                  paddingLeft: 14,
+                  marginVertical: 10,
                   color: '#9ca3af',
                 },
               }}
             >
               {message.content}
             </Markdown>
-            
-            {/* Download button - subtle and minimal */}
-            {onDownloadPDF && (
-              <TouchableOpacity
-                onPress={() => onDownloadPDF(message)}
-                className="absolute -bottom-6 right-0 bg-neutral-700/50 rounded-full p-1"
-              >
-                <Ionicons name="download-outline" size={12} color="#9ca3af" />
-              </TouchableOpacity>
+
+            {/* Timestamp */}
+            <Text className="text-neutral-500 text-[10px]">
+              {formatTime(message.timestamp)}
+            </Text>
+
+            {/* Action Buttons - Copy & Download */}
+            {showActions && (
+              <Animated.View style={{ opacity: fadeAnim }} className="flex-row gap-4 mt-2">
+                <TouchableOpacity
+                  onPress={handleCopy}
+                  className="flex-row items-center gap-1 py-1"
+                >
+                  <Ionicons name={copied ? "checkmark" : "copy-outline"} size={14} color="#9ca3af" />
+                 
+                </TouchableOpacity>
+
+                {onDownloadPDF && (
+                  <TouchableOpacity
+                    onPress={() => onDownloadPDF(message)}
+                    className="flex-row items-center gap-1 py-1"
+                  >
+                    <Ionicons name="download-outline" size={14} color="#9ca3af" />
+                   
+                  </TouchableOpacity>
+                )}
+              </Animated.View>
             )}
           </>
-        )}
-        
-        {/* Timestamp */}
-        <Text
-          className={`text-[10px] mt-1.5 ${isUser ? 'text-blue-200/70' : 'text-neutral-500'}`}
-        >
-          {formatTime(message.timestamp)}
-        </Text>
+        ) : null}
       </View>
     </View>
   );
