@@ -55,6 +55,7 @@
     "expo-video": "~3.0.16",
     "expo-web-browser": "~15.0.10",
     "firebase": "^12.10.0",
+    "firebase-admin": "^13.7.0",
     "lodash": "^4.17.23",
     "lucide-react": "^0.577.0",
     "lucide-react-native": "^0.577.0",

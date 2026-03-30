@@ -13,7 +13,6 @@ import {
   KeyboardAvoidingView,
   Platform,
   ScrollView,
-  Text,
   TextInput,
   TouchableOpacity,
   View
@@ -283,12 +282,6 @@ export default function HealthBotScreen() {
         contentContainerStyle={{ paddingBottom: insets.bottom + 80 }}
         keyboardShouldPersistTaps="handled"
       >
-        {messages.length === 0 && (
-          <Text style={{ color: '#6b7280', marginBottom: 10, textAlign: 'center' }}>
-            👋 Welcome to Meditalk
-          </Text>
-        )}
-
         {messages.map(msg => (
           <ChatMessage
             key={msg.id}
@@ -330,7 +323,7 @@ export default function HealthBotScreen() {
           padding: 12,
           borderTopColor: '#1f1f1f',
           backgroundColor: 'black',
-          paddingBottom: insets.bottom || 20,
+          paddingBottom: 0 || 12,
         }}
       >
         <View

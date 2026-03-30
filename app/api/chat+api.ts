@@ -1,14 +1,14 @@
 // app/api/chat+api.ts
-import { streamText } from "ai";
-import { openai } from "@ai-sdk/openai";
-import {
-  availableModels,
-  DEFAULT_MODEL,
-} from "@/lib/meditalk/model-config";
 import {
   createSystemPrompt,
   formatUserDataForPrompt,
 } from "@/components/prompt/prompt";
+import {
+  availableModels,
+  DEFAULT_MODEL,
+} from "@/lib/meditalk/model-config";
+import { openai } from "@ai-sdk/openai";
+import { streamText } from "ai";
 
 const TEMPERATURE = 0.7;
 

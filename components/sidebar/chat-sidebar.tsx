@@ -1,16 +1,16 @@
 import { Ionicons } from '@expo/vector-icons';
 import React, { useEffect, useRef, useState } from 'react';
-import { 
-  Animated, 
-  Dimensions, 
-  Modal, 
-  Text, 
-  TouchableOpacity, 
-  View, 
-  ScrollView,
-  TextInput,
+import {
   Alert,
-  Image
+  Animated,
+  Dimensions,
+  Image,
+  Modal,
+  ScrollView,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -29,7 +29,7 @@ interface BotSidebarProps {
   isVisible: boolean;
   onClose: () => void;
   conversations?: Conversation[];
-  currentConversationId?: string;
+  currentConversationId?: string | null; // Change this line
   onSelectConversation?: (conversation: Conversation) => void;
   onNewConversation?: () => void;
   onDeleteConversation?: (id: string) => void;
@@ -46,15 +46,10 @@ export default function BotSidebar({
   onDeleteConversation,
   onRenameConversation,
 }: BotSidebarProps) {
-  const slideAnim = useRef(new Animated.Value(SIDEBAR_WIDTH)).current; // Start from right
+  const slideAnim = useRef(new Animated.Value(SIDEBAR_WIDTH)).current;
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editingTitle, setEditingTitle] = useState('');
-  const scrollY = useRef(new Animated.Value(0)).current;
-  const headerOpacity = scrollY.interpolate({
-    inputRange: [0, 50],
-    outputRange: [1, 0.95],
-    extrapolate: 'clamp',
-  });
+
   useEffect(() => {
     if (isVisible) {
       Animated.timing(slideAnim, {
@@ -98,7 +93,10 @@ export default function BotSidebar({
         {
           text: 'Delete',
           style: 'destructive',
-          onPress: () => onDeleteConversation?.(id),
+          onPress: () => {
+            onDeleteConversation?.(id);
+            // If the deleted conversation is the current one, it will be handled by parent
+          },
         },
       ]
     );
@@ -131,39 +129,33 @@ export default function BotSidebar({
             transform: [{ translateX: slideAnim }],
             width: SIDEBAR_WIDTH,
             position: 'absolute',
-            right: 0, // Position from right side
+            right: 0,
             top: 0,
             bottom: 0,
             backgroundColor: '#0a0a0a',
-            borderLeftWidth: 1, // Border on left instead of right
+            borderLeftWidth: 1,
             borderLeftColor: '#262626',
           }}
         >
           <SafeAreaView className="flex-1">
-            {/* Header */}
-            <Animated.View 
-                         style={{ 
-                           opacity: headerOpacity,
-                           backgroundColor: '#0a0a0a',
-                           borderBottomColor: '#262626',
-                           zIndex: 10,
-                         }}
-                       >
-                         <View className="px-4 pt-2 pb-4">
-                           <View className="flex-row justify-between items-center">
-                             <View className='flex-row items-center'>
-                               <Image
-                                 source={require("@/assets/logo/meditalk.png")}
-                                 className='w-14 h-14'
-                               />
-                               <Text className="text-white text-xl font-medium -ml-2">Meditalk</Text> 
-                             </View>
-                             <TouchableOpacity onPress={handleClose} className="w-10 h-10 items-center justify-center">
-                               <Ionicons name="close" size={24} color="#a1a1aa" />
-                             </TouchableOpacity>
-                           </View>
-                         </View>
-                       </Animated.View>
+            {/* Header - Fixed with stable positioning */}
+            <View className="px-4 pt-4 pb-3 border-b border-neutral-800">
+              <View className="flex-row justify-between items-center">
+                <View className='flex-row items-center'>
+                  <Image
+                    source={require("@/assets/logo/meditalk.png")}
+                    className='w-10 h-10'
+                  />
+                  <Text className="text-white text-lg font-semibold ml-1">Meditalk</Text> 
+                </View>
+                <TouchableOpacity 
+                  onPress={handleClose} 
+                  className="w-8 h-8 items-center justify-center rounded-full bg-neutral-800"
+                >
+                  <Ionicons name="close" size={18} color="#a1a1aa" />
+                </TouchableOpacity>
+              </View>
+            </View>
 
             {/* New Chat Button */}
             <TouchableOpacity
@@ -171,7 +163,7 @@ export default function BotSidebar({
                 onNewConversation?.();
                 handleClose();
               }}
-              className="flex-row items-center gap-2 mx-4 mt-4 p-3 bg-blue-600 rounded-xl"
+              className="flex-row items-center gap-2 mx-4 mt-4 p-3 bg-blue-600 rounded-xl active:bg-blue-700"
             >
               <Ionicons name="add" size={18} color="white" />
               <Text className="text-white text-sm font-medium">New Chat</Text>
@@ -181,6 +173,7 @@ export default function BotSidebar({
             <ScrollView 
               className="flex-1 px-3 mt-4"
               showsVerticalScrollIndicator={false}
+              contentContainerStyle={{ paddingBottom: 20 }}
             >
               {conversations.map((conv) => (
                 <TouchableOpacity
@@ -190,7 +183,7 @@ export default function BotSidebar({
                     handleClose();
                   }}
                   className={`p-3 rounded-xl mb-1 ${
-                    currentConversationId === conv.id ? 'bg-neutral-800' : ''
+                    currentConversationId === conv.id ? 'bg-neutral-800' : 'active:bg-neutral-800/50'
                   }`}
                 >
                   <View className="flex-row items-center justify-between">
@@ -220,13 +213,13 @@ export default function BotSidebar({
                           setEditingId(conv.id);
                           setEditingTitle(conv.title);
                         }}
-                        className="p-1.5 rounded-full"
+                        className="p-1.5 rounded-full active:bg-neutral-700"
                       >
                         <Ionicons name="pencil-outline" size={14} color="#737373" />
                       </TouchableOpacity>
                       <TouchableOpacity
                         onPress={() => handleDelete(conv.id, conv.title)}
-                        className="p-1.5 rounded-full"
+                        className="p-1.5 rounded-full active:bg-neutral-700"
                       >
                         <Ionicons name="trash-outline" size={14} color="#ef4444" />
                       </TouchableOpacity>
@@ -244,7 +237,7 @@ export default function BotSidebar({
                     No conversations
                   </Text>
                   <Text className="text-neutral-600 text-xs text-center mt-1">
-                    Start a new chat
+                    Start a new chat to begin
                   </Text>
                 </View>
               )}

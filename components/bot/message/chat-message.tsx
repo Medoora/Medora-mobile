@@ -92,7 +92,7 @@ export default function ChatMessage({ message, onDownloadPDF, isStreaming = fals
   return (
     <View className="flex-row justify-start mb-6">
       {/* Avatar */}
-      <View className="w-8 h-8 rounded-full items-center justify-center mr-3 mt-3">
+      <View className="w-8 h-8 rounded-full items-center justify-center mr-3 mt-1">
         <Ionicons name="chatbubble-ellipses-outline" size={16} color="#3b82f6" />
       </View>
 
@@ -102,12 +102,12 @@ export default function ChatMessage({ message, onDownloadPDF, isStreaming = fals
         {isStreaming && !message.content && (
           <Animated.View 
             style={{ opacity: pulseAnim }}
-            className="flex-row items-center gap-1"
+            className="flex-row items-center gap-1 mt-4"
           >
-            <View className="w-2 h-2 bg-blue-400 rounded-full" />
-            <View className="w-2 h-2 bg-blue-400 rounded-full" />
-            <View className="w-2 h-2 bg-blue-400 rounded-full" />
-            <Text className="text-neutral-400 text-sm ml-2">Thinking</Text>
+            <View className="w-2 h-2 bg-white rounded-full" />
+            <View className="w-2 h-2 bg-white rounded-full" />
+            <View className="w-2 h-2 bg-white rounded-full" />
+           
           </Animated.View>
         )}
 

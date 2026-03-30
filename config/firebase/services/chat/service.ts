@@ -1,11 +1,14 @@
 import {
   addDoc,
   collection,
+  deleteDoc,
   doc,
+  getDoc,
   getDocs,
   limit,
   orderBy,
   query,
+  setDoc,
   Timestamp,
   updateDoc,
   where,
@@ -44,6 +47,14 @@ export interface ChatHistoryFilters {
   orderBy?: 'asc' | 'desc';
 }
 
+export interface Conversation {
+  id: string;
+  title: string;
+  messages: ChatMessageMetadata[];
+  createdAt: Date;
+  updatedAt: Date;
+}
+
 class ChatHistoryService {
   private getChatCollection(userId: string) {
     return collection(db, 'users', userId, 'chatHistory');
@@ -52,6 +63,203 @@ class ChatHistoryService {
   private getSessionsCollection(userId: string) {
     return collection(db, 'users', userId, 'chatSessions');
   }
+
+  private getConversationsCollection(userId: string) {
+    return collection(db, 'users', userId, 'conversations');
+  }
+
+  // ========== CONVERSATION MANAGEMENT ==========
+
+  /**
+   * Create a new conversation
+   */
+// In chat/service.ts
+
+async createConversation(userId: string, title?: string): Promise<string> {
+  try {
+    // Generate a unique ID
+    const conversationId = `${Date.now()}_${Math.random().toString(36).substring(2, 10)}`;
+    const convRef = doc(this.getConversationsCollection(userId), conversationId);
+    
+    await setDoc(convRef, {
+      id: conversationId,
+      title: title || 'New Chat',
+      messages: [],
+      createdAt: Timestamp.now(),
+      updatedAt: Timestamp.now(),
+    });
+    
+    console.log('Conversation created with ID:', conversationId);
+    return conversationId;
+  } catch (error) {
+    console.error('Error creating conversation:', error);
+    throw error;
+  }
+}
+  /**
+   * Get a specific conversation by ID
+   */
+  async getConversation(userId: string, conversationId: string): Promise<Conversation | null> {
+    try {
+      const convRef = doc(this.getConversationsCollection(userId), conversationId);
+      const convDoc = await getDoc(convRef);
+      
+      if (convDoc.exists()) {
+        const data = convDoc.data();
+        return {
+          id: convDoc.id,
+          title: data.title,
+          messages: (data.messages || []).map((msg: any) => ({
+            ...msg,
+            timestamp: msg.timestamp?.toDate() || new Date(),
+          })),
+          createdAt: data.createdAt?.toDate() || new Date(),
+          updatedAt: data.updatedAt?.toDate() || new Date(),
+        };
+      }
+      return null;
+    } catch (error) {
+      console.error('Error getting conversation:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get all conversations for a user
+   */
+  async getConversations(userId: string): Promise<Conversation[]> {
+    try {
+      const convRef = this.getConversationsCollection(userId);
+      const q = query(convRef, orderBy('updatedAt', 'desc'));
+      const querySnapshot = await getDocs(q);
+      
+      const conversations: Conversation[] = [];
+      querySnapshot.forEach((doc) => {
+        const data = doc.data();
+        conversations.push({
+          id: doc.id,
+          title: data.title,
+          messages: (data.messages || []).map((msg: any) => ({
+            ...msg,
+            timestamp: msg.timestamp?.toDate() || new Date(),
+          })),
+          createdAt: data.createdAt?.toDate() || new Date(),
+          updatedAt: data.updatedAt?.toDate() || new Date(),
+        });
+      });
+      
+      return conversations;
+    } catch (error) {
+      console.error('Error getting conversations:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Update a conversation with new messages
+   */
+ // In chat/service.ts
+async updateConversation(
+  userId: string, 
+  conversationId: string, 
+  messages: ChatMessageMetadata[],
+  title?: string
+): Promise<void> {
+  try {
+    const convRef = doc(this.getConversationsCollection(userId), conversationId);
+    
+    // First check if document exists
+    const convDoc = await getDoc(convRef);
+    
+    const updateData: any = {
+      messages: messages.map(msg => ({
+        ...msg,
+        timestamp: Timestamp.fromDate(msg.timestamp),
+      })),
+      updatedAt: Timestamp.now(),
+    };
+    
+    if (title) {
+      updateData.title = title;
+    } else if (messages.length > 0 && messages[0].content) {
+      updateData.title = messages[0].content.slice(0, 30) + (messages[0].content.length > 30 ? '...' : '');
+    }
+    
+    if (convDoc.exists()) {
+      // Update existing document
+      await updateDoc(convRef, updateData);
+    } else {
+      // Create new document with initial data
+      await setDoc(convRef, {
+        id: conversationId,
+        title: updateData.title || 'New Chat',
+        messages: updateData.messages,
+        createdAt: Timestamp.now(),
+        updatedAt: updateData.updatedAt,
+      });
+    }
+  } catch (error) {
+    console.error('Error updating conversation:', error);
+    throw error;
+  }
+}
+  /**
+   * Add a single message to a conversation
+   */
+  async addMessageToConversation(
+    userId: string,
+    conversationId: string,
+    message: Omit<ChatMessageMetadata, 'id'>
+  ): Promise<void> {
+    try {
+      const conv = await this.getConversation(userId, conversationId);
+      if (!conv) {
+        throw new Error('Conversation not found');
+      }
+      
+      const newMessage: ChatMessageMetadata = {
+        ...message,
+        id: Date.now().toString(),
+      };
+      
+      const updatedMessages = [...conv.messages, newMessage];
+      await this.updateConversation(userId, conversationId, updatedMessages);
+    } catch (error) {
+      console.error('Error adding message to conversation:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Delete a conversation
+   */
+  async deleteConversation(userId: string, conversationId: string): Promise<void> {
+    try {
+      const convRef = doc(this.getConversationsCollection(userId), conversationId);
+      await deleteDoc(convRef);
+    } catch (error) {
+      console.error('Error deleting conversation:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Rename a conversation
+   */
+  async renameConversation(userId: string, conversationId: string, newTitle: string): Promise<void> {
+    try {
+      const convRef = doc(this.getConversationsCollection(userId), conversationId);
+      await updateDoc(convRef, {
+        title: newTitle,
+        updatedAt: Timestamp.now(),
+      });
+    } catch (error) {
+      console.error('Error renaming conversation:', error);
+      throw error;
+    }
+  }
+
+  // ========== EXISTING CHAT METHODS ==========
 
   /**
    * Save a single chat message
@@ -68,7 +276,6 @@ class ChatHistoryService {
         createdAt: Timestamp.now()
       });
       
-      // Update session message count
       await this.incrementSessionMessageCount(userId, message.model || 'default');
       
       return docRef.id;
@@ -102,7 +309,6 @@ class ChatHistoryService {
 
       await batch.commit();
       
-      // Update session count once for the batch
       if (messages.length > 0) {
         await this.incrementSessionMessageCount(
           userId, 
@@ -156,7 +362,7 @@ class ChatHistoryService {
         role: 'assistant',
         content: assistantMessage,
         model: metadata.model,
-        timestamp: Timestamp.now(), // Slightly later timestamp
+        timestamp: Timestamp.now(),
         createdAt: Timestamp.now(),
         metadata: {
           tokens: metadata.tokens,
@@ -166,7 +372,6 @@ class ChatHistoryService {
 
       await batch.commit();
 
-      // Update session count
       await this.incrementSessionMessageCount(userId, metadata.model, 2);
 
       return {
@@ -189,28 +394,21 @@ class ChatHistoryService {
     try {
       let constraints = [];
 
-      // Date filters
       if (filters.startDate) {
         constraints.push(where('timestamp', '>=', Timestamp.fromDate(filters.startDate)));
       }
       if (filters.endDate) {
         constraints.push(where('timestamp', '<=', Timestamp.fromDate(filters.endDate)));
       }
-
-      // Role filter
       if (filters.role) {
         constraints.push(where('role', '==', filters.role));
       }
-
-      // Model filter
       if (filters.model) {
         constraints.push(where('model', '==', filters.model));
       }
 
-      // Always order by timestamp
-      constraints.push(orderBy('timestamp', 'desc'));
+      constraints.push(orderBy('timestamp', filters.orderBy === 'asc' ? 'asc' : 'desc'));
 
-      // Apply limit if specified
       if (filters.limit) {
         constraints.push(limit(filters.limit));
       }
@@ -232,63 +430,62 @@ class ChatHistoryService {
   /**
    * Get today's chat history
    */
-async getTodayChatHistory(userId: string): Promise<ChatMessageMetadata[]> {
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  const tomorrow = new Date(today);
-  tomorrow.setDate(tomorrow.getDate() + 1);
-  
-  try {
-    const q = query(
-      this.getChatCollection(userId),
-      where('timestamp', '>=', Timestamp.fromDate(today)),
-      where('timestamp', '<', Timestamp.fromDate(tomorrow)),
-      orderBy('timestamp', 'asc') // Directly order ascending for today
-    );
+  async getTodayChatHistory(userId: string): Promise<ChatMessageMetadata[]> {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const tomorrow = new Date(today);
+    tomorrow.setDate(tomorrow.getDate() + 1);
     
-    const querySnapshot = await getDocs(q);
-    
-    return querySnapshot.docs.map(doc => ({
-      id: doc.id,
-      ...doc.data(),
-      timestamp: doc.data().timestamp?.toDate()
-    })) as ChatMessageMetadata[];
-  } catch (error) {
-    console.error('Error getting today chat history:', error);
-    throw error;
+    try {
+      const q = query(
+        this.getChatCollection(userId),
+        where('timestamp', '>=', Timestamp.fromDate(today)),
+        where('timestamp', '<', Timestamp.fromDate(tomorrow)),
+        orderBy('timestamp', 'asc')
+      );
+      
+      const querySnapshot = await getDocs(q);
+      
+      return querySnapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data(),
+        timestamp: doc.data().timestamp?.toDate()
+      })) as ChatMessageMetadata[];
+    } catch (error) {
+      console.error('Error getting today chat history:', error);
+      throw error;
+    }
   }
-}
 
   /**
    * Get recent chat messages (last N messages)
    */
   async getRecentMessages(
-  userId: string, 
-  messageCount: number = 50
-): Promise<ChatMessageMetadata[]> {
-  try {
-    // Query in DESCENDING order (newest first) for efficient query
-    const q = query(
-      this.getChatCollection(userId),
-      orderBy('timestamp', 'desc'),
-      limit(messageCount)
-    );
-    
-    const querySnapshot = await getDocs(q);
-    
-    // Get documents and then REVERSE them to get chronological order (oldest first)
-    return querySnapshot.docs
-      .map(doc => ({
-        id: doc.id,
-        ...doc.data(),
-        timestamp: doc.data().timestamp?.toDate()
-      }))
-      .reverse() as ChatMessageMetadata[]; // This puts oldest messages first
-  } catch (error) {
-    console.error('Error getting recent messages:', error);
-    throw error;
+    userId: string, 
+    messageCount: number = 50
+  ): Promise<ChatMessageMetadata[]> {
+    try {
+      const q = query(
+        this.getChatCollection(userId),
+        orderBy('timestamp', 'desc'),
+        limit(messageCount)
+      );
+      
+      const querySnapshot = await getDocs(q);
+      
+      return querySnapshot.docs
+        .map(doc => ({
+          id: doc.id,
+          ...doc.data(),
+          timestamp: doc.data().timestamp?.toDate()
+        }))
+        .reverse() as ChatMessageMetadata[];
+    } catch (error) {
+      console.error('Error getting recent messages:', error);
+      throw error;
+    }
   }
-}
+
   /**
    * Start a new chat session
    */
@@ -335,7 +532,6 @@ async getTodayChatHistory(userId: string): Promise<ChatMessageMetadata[]> {
     count: number = 1
   ): Promise<void> {
     try {
-      // Get active session or create new one
       const sessionsRef = this.getSessionsCollection(userId);
       const q = query(
         sessionsRef,
@@ -347,7 +543,6 @@ async getTodayChatHistory(userId: string): Promise<ChatMessageMetadata[]> {
       const querySnapshot = await getDocs(q);
       
       if (!querySnapshot.empty) {
-        // Update existing session
         const sessionDoc = querySnapshot.docs[0];
         const sessionRef = doc(sessionsRef, sessionDoc.id);
         const currentCount = sessionDoc.data().messageCount || 0;
@@ -355,7 +550,6 @@ async getTodayChatHistory(userId: string): Promise<ChatMessageMetadata[]> {
           messageCount: currentCount + count
         });
       } else {
-        // Create new session
         await addDoc(sessionsRef, {
           startTime: Timestamp.now(),
           messageCount: count,
@@ -366,7 +560,6 @@ async getTodayChatHistory(userId: string): Promise<ChatMessageMetadata[]> {
       }
     } catch (error) {
       console.error('Error incrementing session count:', error);
-      // Don't throw - this is non-critical
     }
   }
 
@@ -432,17 +625,14 @@ async getTodayChatHistory(userId: string): Promise<ChatMessageMetadata[]> {
     topModels: Array<{ model: string; count: number }>;
   }> {
     try {
-      // Get total messages
       const messagesRef = this.getChatCollection(userId);
       const messagesSnapshot = await getDocs(messagesRef);
       const totalMessages = messagesSnapshot.size;
 
-      // Get total sessions
       const sessionsRef = this.getSessionsCollection(userId);
       const sessionsSnapshot = await getDocs(sessionsRef);
       const totalSessions = sessionsSnapshot.size;
 
-      // Get model usage
       const modelCount: Record<string, number> = {};
       messagesSnapshot.docs.forEach(doc => {
         const data = doc.data();
