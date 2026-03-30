@@ -1,4 +1,4 @@
-import { ChatHistoryFilters, chatHistoryService, ChatMessageMetadata } from '@/config/firebase/services/chat/service';
+import { ChatHistoryFilters, chatHistoryService, ChatMessageMetadata, Conversation } from '@/config/firebase/services/chat/service';
 import { useAuth } from "@/context/auth-context";
 import { useCallback, useState } from 'react';
 
@@ -231,7 +231,146 @@ const loadHistory = useCallback(async (
     }
   }, [user]);
 
+  /*  create coversation */
+// In your useChatHistory hook
+const createConversation = useCallback(async (title?: string): Promise<string> => {
+  if (!user) {
+    throw new Error('User not authenticated');
+  }
+
+  setIsSaving(true);
+  setError(null);
+
+  try {
+    const conversationId = await chatHistoryService.createConversation(user.uid, title);
+    console.log('createConversation service returned:', conversationId);
+    return conversationId;
+  } catch (err) {
+    setError(err as Error);
+    throw err;
+  } finally {
+    setIsSaving(false);
+  }
+}, [user]);
+   /**
+   * Get a specific conversation
+   */
+  const getConversation = useCallback(async (conversationId: string): Promise<Conversation | null> => {
+    if (!user) {
+      return null;
+    }
+
+    setIsLoading(true);
+    setError(null);
+
+    try {
+      const conversation = await chatHistoryService.getConversation(user.uid, conversationId);
+      return conversation;
+    } catch (err) {
+      setError(err as Error);
+      return null;
+    } finally {
+      setIsLoading(false);
+    }
+  }, [user]);
+
+  /**
+   * Get all conversations
+   */
+  const getConversations = useCallback(async (): Promise<Conversation[]> => {
+    if (!user) {
+      return [];
+    }
+
+    setIsLoading(true);
+    setError(null);
+
+    try {
+      const conversations = await chatHistoryService.getConversations(user.uid);
+      return conversations;
+    } catch (err) {
+      setError(err as Error);
+      return [];
+    } finally {
+      setIsLoading(false);
+    }
+  }, [user]);
+/**
+   * Update a conversation with messages
+   */
+  const updateConversation = useCallback(async (
+    conversationId: string, 
+    messages: ChatMessageMetadata[],
+    title?: string
+  ): Promise<void> => {
+    if (!user) {
+      throw new Error('User not authenticated');
+    }
+
+    setIsSaving(true);
+    setError(null);
+
+    try {
+      await chatHistoryService.updateConversation(user.uid, conversationId, messages, title);
+    } catch (err) {
+      setError(err as Error);
+      throw err;
+    } finally {
+      setIsSaving(false);
+    }
+  }, [user]);
+
+  /**
+   * Delete a conversation
+   */
+  const deleteConversation = useCallback(async (conversationId: string): Promise<void> => {
+    if (!user) {
+      throw new Error('User not authenticated');
+    }
+
+    setIsSaving(true);
+    setError(null);
+
+    try {
+      await chatHistoryService.deleteConversation(user.uid, conversationId);
+    } catch (err) {
+      setError(err as Error);
+      throw err;
+    } finally {
+      setIsSaving(false);
+    }
+  }, [user]);
+
+  /**
+   * Rename a conversation
+   */
+  const renameConversation = useCallback(async (conversationId: string, newTitle: string): Promise<void> => {
+    if (!user) {
+      throw new Error('User not authenticated');
+    }
+
+    setIsSaving(true);
+    setError(null);
+
+    try {
+      await chatHistoryService.renameConversation(user.uid, conversationId, newTitle);
+    } catch (err) {
+      setError(err as Error);
+      throw err;
+    } finally {
+      setIsSaving(false);
+    }
+  }, [user]);
+
   return {
+    /* convo methos */
+    createConversation,
+    getConversation,
+    getConversations,
+    updateConversation,
+    deleteConversation,
+    renameConversation,
+    /* chat methods */
     saveMessage,
     saveConversation,
     loadHistory,
