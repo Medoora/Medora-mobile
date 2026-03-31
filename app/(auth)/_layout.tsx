@@ -12,7 +12,7 @@ export default function AuthLayout() {
       if (hasCompletedOnboarding) {
         router.replace('/(dashboard)/dashboard/(tabs)');
       } else {
-        router.replace('/(onboarding)/welcome');
+        router.replace('/(onboarding)/onboarding');
       }
     }
   }, [user, hasCompletedOnboarding]);

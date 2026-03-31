@@ -126,7 +126,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     if (!user) {
       router.replace("/(auth)/welcome");
     } else if (!hasCompletedOnboarding) {
-      router.replace("/(onboarding)/welcome");
+      router.replace("/(onboarding)/onboarding");
     } else {
       router.replace("/(dashboard)/dashboard/(tabs)");
     }
