@@ -1,14 +1,13 @@
+import { GoogleSignin } from '@react-native-google-signin/google-signin';
 import {
   AuthError,
   createUserWithEmailAndPassword,
+  GoogleAuthProvider,
   onAuthStateChanged,
   sendEmailVerification,
-  sendPasswordResetEmail // Added this import
-  ,
-
-
+  sendPasswordResetEmail,
+  signInWithCredential,
   signInWithEmailAndPassword,
-  /* signInWithPopup */
   signOut,
   updateProfile,
   User,
@@ -16,7 +15,7 @@ import {
 } from "firebase/auth";
 import { deleteDoc, doc, getDoc, setDoc, updateDoc } from "firebase/firestore";
 import { auth, db } from "../../config";
-/* import { OTPData, AuthUser } from "@/types/auth/auth-layout/types"; */
+
 export interface AuthUser {
   uid: string;
   email: string;
@@ -35,6 +34,147 @@ export interface OTPData {
   uid: string;
   expiresAt: Date;
 }
+
+// ========== GOOGLE SIGN-IN CONFIGURATION ==========
+
+// Call this function once when your app starts
+export function configureGoogleSignIn() {
+  console.log("⚙️ Configuring Google Sign-In...");
+  
+  GoogleSignin.configure({
+    webClientId: process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID,
+    offlineAccess: true,
+    iosClientId: process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID,
+    
+  });
+  
+  console.log("✅ Google Sign-In configured");
+}
+
+// ========== GOOGLE SIGN-IN FUNCTION ==========
+
+export async function loginWithGoogle(): Promise<{ 
+  success: boolean; 
+  user?: User;
+  authUser?: AuthUser;
+  needsOnboarding?: boolean;
+  error?: string 
+}> {
+  try {
+    console.log("🔐 Starting Google Sign-In...");
+    
+    // Check if Google Play Services are available (Android only, safe on iOS)
+    await GoogleSignin.hasPlayServices();
+    
+    // Trigger the Google Sign-In modal
+    const response = await GoogleSignin.signIn();
+    
+    if (!response.data?.idToken) {
+      console.error("❌ No ID token received from Google");
+      return { success: false, error: "Failed to get authentication token" };
+    }
+    
+    console.log("✅ Google Sign-In successful, creating Firebase credential...");
+    
+    // Create Firebase credential with the ID token
+    const credential = GoogleAuthProvider.credential(response.data.idToken);
+    
+    // Sign in to Firebase with the credential
+    const userCredential = await signInWithCredential(auth, credential);
+    const user = userCredential.user;
+    
+    console.log("✅ Firebase sign-in successful for user:", user.uid);
+    
+    // Get user info from Google response
+    const userInfo = response.data.user;
+    const username = userInfo?.name || user.displayName || user.email?.split('@')[0] || "User";
+    const photoURL = userInfo?.photo || user.photoURL || undefined;
+    
+    // Store/update user data in Firestore
+    await storeUserData(
+      user.uid,
+      user.email!,
+      username,
+      user.emailVerified,
+      false // Will check onboarding status below
+    );
+    
+    // Check if user has completed onboarding from 'patients' collection
+    let hasCompletedOnboarding = false;
+    try {
+      const patientDoc = await getDoc(doc(db, "patients", user.uid));
+      hasCompletedOnboarding = patientDoc.exists();
+    } catch (error) {
+      console.log("⚠️ Could not check onboarding status, defaulting to false");
+    }
+    
+    console.log("📊 Onboarding status:", hasCompletedOnboarding ? "Completed" : "Not completed");
+    
+    // Get user data from Firestore
+    const userDataResult = await getUserData(user.uid);
+    
+    // If user has photoURL from Google, update their profile
+    if (photoURL && !user.photoURL) {
+      await updateProfile(user, { photoURL });
+    }
+    
+    return {
+      success: true,
+      user,
+      authUser: userDataResult.user,
+      needsOnboarding: !hasCompletedOnboarding
+    };
+    
+  } catch (error: any) {
+    console.error("❌ Google Sign-In error:", error);
+    
+    // Handle specific error cases
+    if (error.code === 'SIGN_IN_CANCELLED') {
+      return { success: false, error: "Sign-in was cancelled." };
+    }
+    
+    if (error.code === 'IN_PROGRESS') {
+      return { success: false, error: "Sign-in is already in progress." };
+    }
+    
+    if (error.code === 'PLAY_SERVICES_NOT_AVAILABLE') {
+      return { success: false, error: "Google Play Services are not available or outdated." };
+    }
+    
+    if (error.code === 'DEVELOPER_ERROR') {
+      return { success: false, error: "Configuration error. Please check SHA-1 fingerprints in Google Cloud Console." };
+    }
+    
+    // Check for common Firebase errors
+    let errorMessage = "Google sign-in failed. Please try again.";
+    
+    switch (error.code) {
+      case 'auth/account-exists-with-different-credential':
+        errorMessage = "An account already exists with the same email address but different sign-in credentials. Please sign in with your password first.";
+        break;
+      case 'auth/credential-already-in-use':
+        errorMessage = "This credential is already associated with a different user account.";
+        break;
+      case 'auth/operation-not-allowed':
+        errorMessage = "Google Sign-In is not enabled. Please enable it in the Firebase Console.";
+        break;
+      case 'auth/unauthorized-domain':
+        errorMessage = "This domain is not authorized for OAuth operations.";
+        break;
+      case 'auth/user-disabled':
+        errorMessage = "This account has been disabled.";
+        break;
+      case 'auth/invalid-credential':
+        errorMessage = "Invalid Google credential. Please try again.";
+        break;
+    }
+    
+    return { success: false, error: errorMessage };
+  }
+}
+
+// ========== GENERATE OTP ==========
+
 // Generate 6-digit OTP
 function generateOTP(): string {
   return Math.floor(100000 + Math.random() * 900000).toString();
@@ -326,7 +466,7 @@ async function verifyStoredOTP(email: string, otp: string): Promise<{ success: b
   }
 }
 
-// ========== UPDATED AUTH FUNCTIONS ==========
+// ========== AUTH FUNCTIONS ==========
 
 // Simple sign up - Creates Firebase Auth user AND stores in Firestore
 export async function signUpUser(
@@ -588,55 +728,6 @@ export async function verifyOTPAndLogin(
   }
 }
 
-// Google login - UPDATED to store user data
-/* export async function loginWithGoogle(): Promise<{ 
-  success: boolean; 
-  user?: User;
-  authUser?: AuthUser;
-  needsOnboarding?: boolean;
-  error?: string 
-}> {
-  try {
-    const provider = new GoogleAuthProvider();
-    
-    const result = await signInWithPopup(auth, provider);
-    const user = result.user;
-    
-    // Store/update user data in Firestore
-    const username = user.displayName || user.email!.split('@')[0];
-    await storeUserData(
-      user.uid,
-      user.email!,
-      username,
-      user.emailVerified,
-      false // Will check onboarding status below
-    );
-    
-    // Check if user has completed onboarding
-    const userDoc = await getDoc(doc(db, "patients", user.uid));
-    const hasCompletedOnboarding = userDoc.exists();
-    
-    // Get user data from Firestore
-    const userDataResult = await getUserData(user.uid);
-    
-    return {
-      success: true,
-      user,
-      authUser: userDataResult.user,
-      needsOnboarding: !hasCompletedOnboarding
-    };
-    
-  } catch (error: any) {
-    let errorMessage = "Google sign-in failed. Please try again.";
-    
-    if (error.code === 'auth/popup-closed-by-user') {
-      errorMessage = "Sign-in was cancelled.";
-    }
-    
-    return { success: false, error: errorMessage };
-  }
-} */
-
 // Direct email/password login - NEW function
 export async function directLogin(
   email: string,
@@ -796,12 +887,23 @@ export function setupAuthListener(callback: (user: User | null, authUser?: AuthU
   });
 }
 
-// Sign out
+// Sign out - Updated to also sign out from Google
 export async function signOutUser() {
   try {
+    // Also sign out from Google if the user signed in with Google
+    try {
+      await GoogleSignin.signOut();
+      console.log("✅ Signed out from Google");
+    } catch (googleError) {
+      // User might not have signed in with Google, ignore error
+      console.log("ℹ️ Not signed in with Google or Google sign-out failed");
+    }
+    
     await signOut(auth);
+    console.log("✅ Signed out from Firebase");
     return { success: true };
   } catch (error) {
+    console.error("❌ Sign out error:", error);
     return { success: false, error: "Failed to sign out." };
   }
 }
@@ -844,5 +946,20 @@ export async function skipOnboarding(userId: string): Promise<{
   } catch (error: any) {
     console.error("❌ Error skipping onboarding:", error);
     return { success: false, error: error.message || "Failed to skip onboarding" };
+  }
+}
+
+// Check if user is signed in with Google (utility function)
+export async function isGoogleUser(): Promise<boolean> {
+  try {
+    const currentUser = auth.currentUser;
+    if (!currentUser) return false;
+    
+    // Check if the user has a Google provider
+    const providerData = currentUser.providerData;
+    return providerData.some(provider => provider.providerId === 'google.com');
+  } catch (error) {
+    console.error("Error checking provider:", error);
+    return false;
   }
 }

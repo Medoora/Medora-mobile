@@ -1,4 +1,6 @@
+import { GoogleSignInButton } from '@/components/buttons/google-button';
 import { directLogin, resetPassword } from '@/config/firebase/services/auth/auth';
+import { useAuth } from '@/context/auth-context';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { router } from 'expo-router';
@@ -12,7 +14,7 @@ export default function SignIn() {
     email: '',
     password: '',
   });
-  
+  const {user,hasCompletedOnboarding} = useAuth()
   const [passwordShow, setPasswordShow] = useState(false);
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
@@ -177,6 +179,20 @@ export default function SignIn() {
     }
   };
  */
+  const handleGoogleSuccess = async () => {
+      console.log('User signed in:', user?.email);
+       // Navigate based on onboarding status
+    if (!hasCompletedOnboarding) {
+      router.push('/(onboarding)/onboarding');
+    } else {
+      router.replace('/(dashboard)/dashboard/(tabs)');
+    }
+  }
+   const handleGoogleError = (error: string) => {
+    console.error('Google sign-in error:', error);
+    // Show error in UI or toast notification
+  };
+
   const handleForgotPassword = async () => {
     if (!formData.email.trim()) {
       Alert.alert(
@@ -238,10 +254,10 @@ export default function SignIn() {
           <View className="flex-1 px-6 pt-8 pb-12">
             
             {/* Logo */}
-            <View className="items-center mb-12">
+            <View className="items-center ">
               <Image
-                source={require('@/assets/logo/4.png')}
-                className="w-24 h-24"
+                source={require('@/assets/logo/logo.png')}
+                className="w-32 h-32"
                 resizeMode="contain"
               />
             </View>
@@ -321,18 +337,18 @@ export default function SignIn() {
               <TouchableOpacity
                 onPress={handleSignIn}
                 disabled={loading || googleLoading}
-                className="mt-4 bg-white py-4 rounded-xl"
+                className="mt-4 bg-blue-600 py-4 rounded-xl"
                 activeOpacity={0.8}
               >
                 {loading ? (
                   <View className="flex-row justify-center items-center">
                     <ActivityIndicator size="small" color="#000000" />
-                    <Text className="text-black font-medium text-base ml-2">
+                    <Text className="text-white font-medium text-base ml-2">
                       Signing in...
                     </Text>
                   </View>
                 ) : (
-                  <Text className="text-black text-center font-medium text-base">
+                  <Text className="text-white text-center font-medium text-base">
                     Sign in
                   </Text>
                 )}
@@ -355,8 +371,8 @@ export default function SignIn() {
     <Text className="text-white text-center">Debug Network</Text>
   </TouchableOpacity> */}
               {/* Google Sign In */}
-              <TouchableOpacity
-             /*    onPress={handleGoogleSignIn} */
+             {/*  <TouchableOpacity
+            
                 disabled={googleLoading || loading}
                 className="border border-zinc-800 py-4 rounded-xl flex-row justify-center items-center"
                 activeOpacity={0.7}
@@ -373,6 +389,15 @@ export default function SignIn() {
                 )}
               </TouchableOpacity>
 
+ */}
+              {/* custom OAuth Button(Google) */}
+              <GoogleSignInButton
+               onSuccess={handleGoogleSuccess}
+               onError={handleGoogleError}
+               fullWidth={true}
+               buttonText='Continue With Google'
+              
+              />
               {/* Sign Up Link */}
               <View className="flex-row justify-center mt-8">
                 <Text className="text-zinc-300 text-sm font-medium">Don't have an account? </Text>

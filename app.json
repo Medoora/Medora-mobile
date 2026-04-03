@@ -8,16 +8,19 @@
     "scheme": "medoraapp",
     "userInterfaceStyle": "automatic",
     "ios": {
+      "googleServicesFile": "./GoogleService-Info.plist",
       "supportsTablet": true,
       "bundleIdentifier": "com.anonymous.medoraapp",
       "infoPlist": {
         "NSAppTransportSecurity": {
           "NSAllowsArbitraryLoads": true
         },
-        "ITSAppUsesNonExemptEncryption": false
+        "ITSAppUsesNonExemptEncryption": false,
+         "GIDClientID": "434901611189-cgjpvtga7th5nu7gb9pq37759ta0fo22.apps.googleusercontent.com"
       }
     },
     "android": {
+      "googleServicesFile": "./google-services.json",
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE",
         "foregroundImage": "./assets/images/android-icon-foreground.png",
@@ -47,6 +50,11 @@
       "favicon": "./assets/images/favicon.png"
     },
     "plugins": [
+      ["@react-native-google-signin/google-signin",
+          {
+      "iosUrlScheme": "com.googleusercontent.apps.434901611189-cgjpvtga7th5nu7gb9pq37759ta0fo22"
+    }
+      ],
       [
         "expo-router",
         {

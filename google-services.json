@@ -1,0 +1,54 @@
+{
+  "project_info": {
+    "project_number": "434901611189",
+    "project_id": "medora-72e33",
+    "storage_bucket": "medora-72e33.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:434901611189:android:c90fc486d4bc0e3e3a04fc",
+        "android_client_info": {
+          "package_name": "com.anonymous.medoraapp"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "434901611189-uv6249rme4ga593m49ooem0j69r8u4rg.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.anonymous.medoraapp",
+            "certificate_hash": "14f06c680ad4073e04de8e9182bd0a1d85a0d377"
+          }
+        },
+        {
+          "client_id": "434901611189-j8vu42pdc0b8fgtmop59sh4t8ejr15j8.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDm5F5MKiTfq5G00IwZDYneAWIcfmt0BqQ"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "434901611189-j8vu42pdc0b8fgtmop59sh4t8ejr15j8.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "434901611189-cgjpvtga7th5nu7gb9pq37759ta0fo22.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.anonymous.medoraapp"
+              }
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
