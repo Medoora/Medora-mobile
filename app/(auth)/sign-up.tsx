@@ -1,4 +1,6 @@
+import { GoogleSignInButton } from '@/components/buttons/google-button';
 import { signUpUser } from '@/config/firebase/services/auth/auth';
+import { useAuth } from '@/context/auth-context';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Checkbox from 'expo-checkbox';
@@ -9,6 +11,7 @@ import { ActivityIndicator, Alert, Image, KeyboardAvoidingView, Platform, Scroll
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 export default function SignUpScreen() {
+  const {user,hasCompletedOnboarding} = useAuth()
   const [formData, setFormData] = useState({
     fullname: '',
     email: '',
@@ -62,6 +65,20 @@ export default function SignUpScreen() {
     }
   };
 
+  // google buttons 
+   const handleGoogleSuccess = async () => {
+        console.log('User signed in:', user?.email);
+         // Navigate based on onboarding status
+      if (!hasCompletedOnboarding) {
+        router.push('/(onboarding)/onboarding');
+      } else {
+        router.replace('/(dashboard)/dashboard/(tabs)');
+      }
+    }
+     const handleGoogleError = (error: string) => {
+      console.error('Google sign-in error:', error);
+      // Show error in UI or toast notification
+    };
   const validateForm = (): boolean => {
     setError(null);
     
@@ -124,7 +141,7 @@ export default function SignUpScreen() {
           [
             { 
               text: "Continue to Onboarding", 
-              onPress: () => router.replace('/(onboarding)/welcome')
+              onPress: () => router.replace('/(onboarding)/onboarding')
             }
           ]
         );
@@ -217,10 +234,10 @@ export default function SignUpScreen() {
           <View className="flex-1 px-6 pt-8 pb-12">
             
             {/* Logo */}
-            <View className="items-center mb-12">
+            <View className="items-center">
               <Image
-                source={require('@/assets/logo/4.png')}
-                className="w-24 h-24"
+                source={require('@/assets/logo/logo.png')}
+                className="w-32 h-32"
                 resizeMode="contain"
               />
             </View>
@@ -345,18 +362,18 @@ export default function SignUpScreen() {
               <TouchableOpacity
                 onPress={handleSignUp}
                 disabled={loading || googleLoading}
-                className="mt-8 bg-white py-4 rounded-xl"
+                className="mt-8 bg-blue-600 py-4 rounded-xl"
                 activeOpacity={0.8}
               >
                 {loading ? (
                   <View className="flex-row justify-center items-center">
                     <ActivityIndicator size="small" color="#000000" />
-                    <Text className="text-black font-medium text-base ml-2">
+                    <Text className="text-white font-medium text-base ml-2">
                       Creating account...
                     </Text>
                   </View>
                 ) : (
-                  <Text className="text-black text-center font-medium text-base">
+                  <Text className="text-white text-center font-medium text-base">
                     Create Account
                   </Text>
                 )}
@@ -370,8 +387,8 @@ export default function SignUpScreen() {
               </View>
 
               {/* Google Sign Up */}
-              <TouchableOpacity
-               /*  onPress={handleGoogleSignUp} */
+             {/*  <TouchableOpacity
+             
                 disabled={googleLoading || loading}
                 className="border border-zinc-800 py-4 rounded-xl flex-row justify-center items-center"
                 activeOpacity={0.7}
@@ -386,8 +403,15 @@ export default function SignUpScreen() {
                     </Text>
                   </>
                 )}
-              </TouchableOpacity>
-
+              </TouchableOpacity> */}
+              {/*   new Google button  */}
+              <GoogleSignInButton
+               buttonText='Continue With Google'
+              onSuccess={handleGoogleSuccess}
+               onError={handleGoogleError}
+               fullWidth={true}
+              
+              />
               {/* Sign In Link */}
               <View className="flex-row justify-center mt-8">
                 <Text className="text-zinc-300 text-sm font-medium">Already have an account? </Text>

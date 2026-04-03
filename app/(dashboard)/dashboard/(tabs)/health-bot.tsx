@@ -272,7 +272,7 @@ export default function HealthBotScreen() {
 
   return (
     <KeyboardAvoidingView
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      behavior={Platform.OS === 'ios' ? 'padding' : "height"}
       style={{ flex: 1, backgroundColor: 'black' }}
       keyboardVerticalOffset={90}
     >

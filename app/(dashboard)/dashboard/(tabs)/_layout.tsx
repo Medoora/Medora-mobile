@@ -369,7 +369,7 @@ export default function TabsLayout() {
                 borderTopWidth: 1,
                 elevation: 0,
                 shadowOpacity: 0,
-                height: Platform.OS === "ios" ? 80 : 60,
+                height: Platform.OS === "ios" ? 80 : 95,
                 paddingBottom: Platform.OS === "ios" ? 25 : 10,
                 paddingTop: 10,
                 paddingLeft: 10,
