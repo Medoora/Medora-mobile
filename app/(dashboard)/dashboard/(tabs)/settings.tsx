@@ -9,6 +9,7 @@ import React, { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
+  Image,
   ScrollView,
   Switch,
   Text,
@@ -141,7 +142,11 @@ export default function SettingsScreen() {
         {/* Profile Header */}
         <View className="flex-row items-center gap-4 mb-6">
           <View className="w-16 h-16 bg-blue-500/20 rounded-full items-center justify-center">
-            <Ionicons name="person" size={32} color="#3b82f6" />
+            <Image
+             src={user?.photoURL|| ""}
+             alt=''
+             className='w-16 h-16 rounded-full object-contain'
+            />
           </View>
           <View>
             <Text className="text-white text-xl font-semibold">{displayName || 'User'}</Text>
