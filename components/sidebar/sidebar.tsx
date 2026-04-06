@@ -265,7 +265,7 @@ export default function Sidebar({
 
                   <TouchableOpacity 
                     onPress={() => {
-                      onNavigate('/(screens)/storage-analytics');
+                      onNavigate('/(screens)/storage-anal');
                       handleClose();
                     }}
                     className="flex-row items-center justify-between px-4 py-3 rounded-xl bg-neutral-800/50"
