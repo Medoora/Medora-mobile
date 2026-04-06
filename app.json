@@ -92,7 +92,8 @@
       "expo-web-browser",
       "expo-video",
       "expo-audio",
-      "expo-asset"
+      "expo-asset",
+      "expo-crypto"
     ],
     "experiments": {
       "typedRoutes": true,

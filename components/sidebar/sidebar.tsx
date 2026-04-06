@@ -1,9 +1,10 @@
 import { signOutUser } from '@/config/firebase/services/auth/auth';
+import { StorageService, UserStorage } from '@/config/firebase/services/storage-tracker/service';
 import { useAuth } from '@/context/auth-context';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router, usePathname } from 'expo-router';
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Alert, Animated, Dimensions, Image, Modal, Platform, Switch, Text, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -19,8 +20,6 @@ interface SidebarProps {
   onNotificationsToggle?: (value: boolean) => void;
   darkMode?: boolean;
   onDarkModeToggle?: (value: boolean) => void;
-  totalStorage?: number;
-  storageLimit?: number;
 }
 
 export default function Sidebar({ 
@@ -32,14 +31,14 @@ export default function Sidebar({
   onNotificationsToggle,
   darkMode = true,
   onDarkModeToggle,
-  totalStorage = 0,
-  storageLimit = 500
 }: SidebarProps) {
   const slideAnim = useRef(new Animated.Value(-SIDEBAR_WIDTH)).current;
   const scrollY = useRef(new Animated.Value(0)).current;
   const { user } = useAuth();
   const pathname = usePathname();
   const insets = useSafeAreaInsets();
+  const [storageInfo, setStorageInfo] = useState<UserStorage | null>(null);
+  const [loadingStorage, setLoadingStorage] = useState(true);
 
   const getCurrentTab = () => {
     if (pathname.includes('mydrive')) return 'My Drive';
@@ -53,9 +52,29 @@ export default function Sidebar({
 
   const currentTab = getCurrentTab();
 
+  // Load storage info when sidebar opens or user changes
+  useEffect(() => {
+    if (isVisible && user?.uid) {
+      loadStorageInfo();
+    }
+  }, [isVisible, user?.uid]);
+
+  const loadStorageInfo = async () => {
+    if (!user?.uid) return;
+    
+    setLoadingStorage(true);
+    try {
+      const storage = await StorageService.getUserStorage(user.uid);
+      setStorageInfo(storage);
+    } catch (error) {
+      console.error('Error loading storage info:', error);
+    } finally {
+      setLoadingStorage(false);
+    }
+  };
+
   useEffect(() => {
     if (isVisible) {
-      // Reset animation value to start position before animating in
       slideAnim.setValue(-SIDEBAR_WIDTH);
       Animated.timing(slideAnim, {
         toValue: 0,
@@ -93,16 +112,14 @@ export default function Sidebar({
       ]
     );
   };
+
   const getInitials = (name?: string) => {
-  if (!name) return "";
-
-  const parts = name.trim().split(" ");
-
-  const first = parts[0]?.[0] || "";
-  const last = parts.length > 1 ? parts[parts.length - 1][0] : "";
-
-  return (first + last).toUpperCase();
-};
+    if (!name) return "";
+    const parts = name.trim().split(" ");
+    const first = parts[0]?.[0] || "";
+    const last = parts.length > 1 ? parts[parts.length - 1][0] : "";
+    return (first + last).toUpperCase();
+  };
 
   const handleClose = () => {
     Animated.timing(slideAnim, {
@@ -121,7 +138,10 @@ export default function Sidebar({
     return `${mb.toFixed(1)} MB`;
   };
 
-  const storagePercentage = Math.min((totalStorage / (storageLimit * 1024 * 1024)) * 100, 100);
+  const totalBytes = storageInfo?.totalBytes || 0;
+  const quotaBytes = storageInfo?.quotaBytes || 500 * 1024 * 1024;
+  const storagePercentage = storageInfo?.quotaPercentage || Math.min((totalBytes / quotaBytes) * 100, 100);
+  const storageLimitMB = quotaBytes / (1024 * 1024);
 
   // Scroll header opacity based on scroll position
   const headerOpacity = scrollY.interpolate({
@@ -208,36 +228,17 @@ export default function Sidebar({
                   className="flex-row items-center bg-neutral-800/50 p-3 rounded-xl mb-6"
                 >
                   <View className="w-12 h-12 bg-blue-500/20 rounded-full items-center justify-center">
-                    {/* <Ionicons name="person-outline" size={24} color="#3b82f6" /> */}
                     <Text className='text-white font-semibold uppercase'>
-                       {getInitials(user?.displayName || 'User')}
+                      {getInitials(user?.displayName || 'User')}
                     </Text>
                   </View>
                   <View className="ml-3 flex-1">
-                    <Text className="text-white text-lg font-medium">{user?.displayName|| "User"}</Text>
-                    <Text className='text-white font-xs opacity-50 '>{user?.email}</Text>
-
+                    <Text className="text-white text-lg font-medium">{user?.displayName || "User"}</Text>
+                    <Text className='text-white text-xs opacity-50'>{user?.email}</Text>
                   </View>
-                  
                 </TouchableOpacity>
 
-                {/* Quick Actions Section */}
-               {/*  <View className="mb-6">
-                  <Text className="text-neutral-500 text-xs uppercase tracking-wider mb-3">Quick Actions</Text>
-                  
-                  <TouchableOpacity 
-                    onPress={() => {
-                      if (onUploadPress) onUploadPress();
-                      handleClose();
-                    }}
-                    className="flex-row items-center px-4 py-3 rounded-xl mb-2 bg-blue-500/10"
-                  >
-                    <Ionicons name="cloud-upload-outline" size={20} color="#3b82f6" />
-                    <Text className="text-white ml-3 font-medium">Upload New File</Text>
-                  </TouchableOpacity>
-                </View> */}
-
-                {/* Analytics Section */}
+                {/* Analytics Section - Storage Tracker */}
                 <View className="mb-6">
                   <Text className="text-neutral-500 text-xs uppercase tracking-wider mb-3">Analytics</Text>
                   
@@ -245,26 +246,26 @@ export default function Sidebar({
                     <Text className="text-neutral-400 text-xs mb-2">Storage Usage</Text>
                     <View className="flex-row justify-between items-end mb-2">
                       <Text className="text-white text-2xl font-bold">
-                        {formatFileSize(totalStorage)}
+                        {loadingStorage ? '...' : formatFileSize(totalBytes)}
                       </Text>
                       <Text className="text-neutral-500 text-xs">
-                        of {storageLimit} MB
+                        of {storageLimitMB} MB
                       </Text>
                     </View>
                     <View className="h-2 bg-neutral-800 rounded-full overflow-hidden">
                       <View 
                         className="h-full bg-blue-500 rounded-full"
-                        style={{ width: `${storagePercentage}%` }}
+                        style={{ width: `${loadingStorage ? 0 : storagePercentage}%` }}
                       />
                     </View>
                     <Text className="text-neutral-500 text-xs mt-2">
-                      {storagePercentage.toFixed(1)}% used
+                      {loadingStorage ? 'Loading...' : `${storagePercentage.toFixed(1)}% used`}
                     </Text>
                   </View>
 
                   <TouchableOpacity 
                     onPress={() => {
-                      onNavigate('/(screens)/storage-anal');
+                      onNavigate('/(screens)/storage-analytics');
                       handleClose();
                     }}
                     className="flex-row items-center justify-between px-4 py-3 rounded-xl bg-neutral-800/50"
@@ -318,7 +319,7 @@ export default function Sidebar({
                   
                   <TouchableOpacity 
                     onPress={() => {
-                      onNavigate('/(screens)/trash');
+                      onNavigate('/(dashboard)/dashboard/(tabs)/trash');
                       handleClose();
                     }}
                     className={`flex-row items-center px-4 py-3 rounded-xl mb-2 ${
@@ -384,8 +385,8 @@ export default function Sidebar({
 
                   <TouchableOpacity 
                     onPress={() => {
-                      onNavigate("(screens)/help")
-                      handleClose()
+                      onNavigate("/(screens)/help");
+                      handleClose();
                     }}
                     className="flex-row items-center px-4 py-3 rounded-xl mb-2"
                   >
@@ -395,8 +396,8 @@ export default function Sidebar({
 
                   <TouchableOpacity 
                     onPress={() => {
-                      onNavigate("/(screens)/share-testi")
-                      handleClose()
+                      onNavigate("/(screens)/share-testi");
+                      handleClose();
                     }}
                     className="flex-row items-center px-4 py-3 rounded-xl mb-2"
                   >
