@@ -3,12 +3,12 @@ import { loginWithGoogle } from "@/config/firebase/services/auth/auth";
 import { Ionicons } from "@expo/vector-icons";
 import React, { useState } from 'react';
 import {
-    ActivityIndicator,
-    Alert,
-    Platform,
-    Text,
-    TouchableOpacity,
-    View,
+  ActivityIndicator,
+  Alert,
+  Platform,
+  Text,
+  TouchableOpacity,
+  View,
 } from 'react-native';
 
 interface GoogleSignInButtonProps {

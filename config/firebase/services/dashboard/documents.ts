@@ -1,5 +1,5 @@
 
-import * as Crypto from 'expo-crypto';
+import * as ExpoCrypto from 'expo-crypto';
 import {
   addDoc,
   collection,
@@ -17,6 +17,7 @@ import {
 } from 'firebase/firestore';
 import { Alert } from 'react-native';
 import { db } from '../../config';
+import { StorageService } from '../storage-tracker/service';
 
 export interface ShareSettings {
   isPublic: boolean;
@@ -389,11 +390,28 @@ export const trashDocument = async (documentId: string) => {
 export const restoreDocument = async (documentId: string) => {
   try {
     const docRef = doc(db, 'documents', documentId);
+    const docSnap = await getDoc(docRef);
+    
+    if (!docSnap.exists()) {
+      throw new Error('Document not found');
+    }
+    
+    const data = docSnap.data();
+    const fileBytes = data.cloudinary?.bytes || 0;
+    const userId = data.userId;
+    
+    // ✅ Add back to storage tracking when restoring from trash
+    if (userId && fileBytes > 0) {
+      await StorageService.addFileStorage(userId, fileBytes);
+    }
+    
     await updateDoc(docRef, {
       isTrashed: false,
       trashedAt: null,
       updatedAt: serverTimestamp(),
     });
+    
+    console.log('✅ Document restored from trash');
   } catch (error) {
     console.error('Error restoring document:', error);
     throw error;
@@ -413,8 +431,10 @@ export const permanentlyDeleteDocument = async (documentId: string) => {
     
     const data = docSnap.data();
     const publicId = data.cloudinary?.publicId;
+    const fileBytes = data.cloudinary?.bytes || 0;
+    const userId = data.userId;
     
-    // Delete from Cloudinary directly
+    // ✅ Delete from Cloudinary
     if (publicId) {
       try {
         const cloudName = process.env.EXPO_PUBLIC_CLOUDINARY_CLOUD_NAME;
@@ -431,8 +451,8 @@ export const permanentlyDeleteDocument = async (documentId: string) => {
           const signatureString = `public_id=${publicId}&timestamp=${timestamp}${apiSecret}`;
           
           // Generate SHA256 signature using Expo Crypto
-          const signature = await Crypto.digestStringAsync(
-            Crypto.CryptoDigestAlgorithm.SHA256,
+          const signature = await ExpoCrypto.digestStringAsync(  // ✅ Use ExpoCrypto
+            ExpoCrypto.CryptoDigestAlgorithm.SHA256,
             signatureString
           );
           
@@ -463,11 +483,16 @@ export const permanentlyDeleteDocument = async (documentId: string) => {
         }
       } catch (error) {
         console.error('Error deleting from Cloudinary:', error);
-        // Don't throw - we still want to delete from Firestore
+        // Don't throw - we still want to delete from Firestore and update storage
       }
     }
     
-    // Delete from Firestore
+    // ✅ Remove from storage tracking
+    if (userId && fileBytes > 0) {
+      await StorageService.removeFileStorage(userId, fileBytes);
+    }
+    
+    // ✅ Delete from Firestore
     await deleteDoc(docRef);
     console.log('✅ Document deleted from Firestore');
     

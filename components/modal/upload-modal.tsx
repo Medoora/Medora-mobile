@@ -1,7 +1,7 @@
 import { saveDocumentMetadata } from "@/config/firebase/services/dashboard/documents";
+import { StorageService } from "@/config/firebase/services/storage-tracker/service";
 import { useAuth } from '@/context/auth-context';
 import { extractFileInfo, uploadToCloudinary } from '@/lib/cloudinary/service';
-import { fileEvents } from "@/utils/events";
 import { Ionicons } from '@expo/vector-icons';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import * as DocumentPicker from 'expo-document-picker';
@@ -230,102 +230,115 @@ const handleFilePick = async () => {
     }
   };
 
-  const handleUpload = async () => {
-    if (!selectedFile) {
-      Alert.alert('No File', 'Please select a file first');
-      return;
+const handleUpload = async () => {
+  if (!selectedFile) {
+    Alert.alert('No File', 'Please select a file first');
+    return;
+  }
+  
+  if (!selectedCategory) {
+    Alert.alert('Missing Info', 'Please select document type');
+    return;
+  }
+
+  if (!user) {
+    Alert.alert('Error', 'You must be logged in to upload');
+    return;
+  }
+
+  // ✅ Check storage space before upload
+  const hasEnoughSpace = await StorageService.hasEnoughSpace(user.uid, selectedFile.size || 0);
+  if (!hasEnoughSpace) {
+    Alert.alert(
+      'Storage Full',
+      'You have reached your storage limit (500 MB). Please delete some files or upgrade your plan to upload more.',
+      [{ text: 'OK' }]
+    );
+    return;
+  }
+
+  setIsUploading(true);
+  setUploadProgress(0);
+
+  try {
+    // Upload to Cloudinary
+    const cloudinaryResponse = await uploadToCloudinary(selectedFile.uri, user.uid, {
+      generateThumbnail: true,
+      patientId: user.uid,
+      tags: tags.split(',').map(tag => tag.trim()).filter(tag => tag),
+      onProgress: (progress) => setUploadProgress(progress),
+      fileType: selectedFile.type,
+    });
+
+    if (!cloudinaryResponse) {
+      throw new Error('Cloudinary upload failed');
+    }
+
+    const fileInfo = extractFileInfo(cloudinaryResponse);
+    const selectedCategoryData = DOCUMENT_CATEGORIES.find(cat => cat.value === selectedCategory);
+
+    // Save metadata to Firebase
+    const documentData = {
+      userId: user.uid,
+      userEmail: user.email,
+      patientId: user.uid,
+      documentName: fileName || selectedCategoryData?.label || 'Untitled',
+      documentDate: new Date().toISOString().split('T')[0],
+      category: selectedCategory,
+      categoryLabel: selectedCategoryData?.label || '',
+      description: description,
+      tags: tags.split(',').map(tag => tag.trim()).filter(tag => tag),
+      fileInfo: {
+        name: selectedFile.name,
+        size: selectedFile.size || fileInfo.bytes,
+        type: selectedFile.type,
+        fileTypeCategory: selectedCategoryData?.group === 'Scan Reports' ? 'image' : 'document'
+      },
+      cloudinary: {
+        publicId: fileInfo.publicId,
+        url: fileInfo.url,
+        thumbnailUrl: fileInfo.thumbnailUrl,
+        format: fileInfo.format,
+        bytes: fileInfo.bytes,
+        originalFilename: fileInfo.originalFilename
+      },
+      isStarred: isStarred
+    };
+
+    const documentId = await saveDocumentMetadata(documentData);
+    
+    // ✅ Update storage tracker after successful upload
+    await StorageService.addFileStorage(user.uid, fileInfo.bytes);
+    
+    if (onUpload) {
+      onUpload(uploadType, {
+        uri: selectedFile.uri,
+        fileName: fileName || selectedFile.name,
+        type: selectedFile.type,
+        category: selectedCategory,
+        categoryLabel: selectedCategoryData?.label,
+        group: selectedCategoryData?.group,
+        isStarred,
+        tags: tags.split(',').map(tag => tag.trim()).filter(tag => tag),
+        description,
+      });
     }
     
-    if (!selectedCategory) {
-      Alert.alert('Missing Info', 'Please select document type');
-      return;
+    if (onUploadSuccess) {
+      onUploadSuccess({ id: documentId, ...documentData });
     }
-
-    if (!user) {
-      Alert.alert('Error', 'You must be logged in to upload');
-      return;
-    }
-
-    setIsUploading(true);
+    
+    Alert.alert('Success', 'File uploaded successfully!');
+    handleClose();
+    
+  } catch (error) {
+    console.error('Upload error:', error);
+    Alert.alert('Error', 'Failed to upload file. Please try again.');
+  } finally {
+    setIsUploading(false);
     setUploadProgress(0);
-
-    try {
-      // Upload to Cloudinary
-      const cloudinaryResponse = await uploadToCloudinary(selectedFile.uri, user.uid, {
-        generateThumbnail: true,
-        patientId: user.uid,
-        tags: tags.split(',').map(tag => tag.trim()).filter(tag => tag),
-        onProgress: (progress) => setUploadProgress(progress),
-        fileType: selectedFile.type,
-      });
-
-      if (!cloudinaryResponse) {
-        throw new Error('Cloudinary upload failed');
-      }
-
-      const fileInfo = extractFileInfo(cloudinaryResponse);
-      const selectedCategoryData = DOCUMENT_CATEGORIES.find(cat => cat.value === selectedCategory);
-
-      // Save metadata to Firebase
-      const documentData = {
-        userId: user.uid,
-        userEmail: user.email,
-        patientId: user.uid,
-        documentName: fileName || selectedCategoryData?.label || 'Untitled',
-        documentDate: new Date().toISOString().split('T')[0],
-        category: selectedCategory,
-        categoryLabel: selectedCategoryData?.label || '',
-        description: description,
-        tags: tags.split(',').map(tag => tag.trim()).filter(tag => tag),
-        fileInfo: {
-          name: selectedFile.name,
-          size: selectedFile.size || fileInfo.bytes,
-          type: selectedFile.type,
-          fileTypeCategory: selectedCategoryData?.group === 'Scan Reports' ? 'image' : 'document'
-        },
-        cloudinary: {
-          publicId: fileInfo.publicId,
-          url: fileInfo.url,
-          thumbnailUrl: fileInfo.thumbnailUrl,
-          format: fileInfo.format,
-          bytes: fileInfo.bytes,
-          originalFilename: fileInfo.originalFilename
-        },
-        isStarred: isStarred
-      };
-
-      const documentId = await saveDocumentMetadata(documentData);
-      fileEvents.emit("uploadComplete")
-      
-      if (onUpload) {
-        onUpload(uploadType, {
-          uri: selectedFile.uri,
-          fileName: fileName || selectedFile.name,
-          type: selectedFile.type,
-          category: selectedCategory,
-          categoryLabel: selectedCategoryData?.label,
-          group: selectedCategoryData?.group,
-          isStarred,
-          tags: tags.split(',').map(tag => tag.trim()).filter(tag => tag),
-          description,
-        });
-      }
-      
-      if (onUploadSuccess) {
-        onUploadSuccess({ id: documentId, ...documentData });
-      }
-      
-      Alert.alert('Success', 'File uploaded successfully!');
-      handleClose();
-      
-    } catch (error) {
-      console.error('Upload error:', error);
-      Alert.alert('Error', 'Failed to upload file. Please try again.');
-    } finally {
-      setIsUploading(false);
-      setUploadProgress(0);
-    }
-  };
+  }
+};
 
   const removeSelectedFile = () => {
     setSelectedFile(null);
