@@ -1,6 +1,7 @@
 import { signOutUser } from '@/config/firebase/services/auth/auth';
 import { StorageService, UserStorage } from '@/config/firebase/services/storage-tracker/service';
 import { useAuth } from '@/context/auth-context';
+import { getInitials } from '@/utils/cryto';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router, usePathname } from 'expo-router';
@@ -113,13 +114,7 @@ export default function Sidebar({
     );
   };
 
-  const getInitials = (name?: string) => {
-    if (!name) return "";
-    const parts = name.trim().split(" ");
-    const first = parts[0]?.[0] || "";
-    const last = parts.length > 1 ? parts[parts.length - 1][0] : "";
-    return (first + last).toUpperCase();
-  };
+
 
   const handleClose = () => {
     Animated.timing(slideAnim, {
@@ -228,9 +223,19 @@ export default function Sidebar({
                   className="flex-row items-center bg-neutral-800/50 p-3 rounded-xl mb-6"
                 >
                   <View className="w-12 h-12 bg-blue-500/20 rounded-full items-center justify-center">
-                    <Text className='text-white font-semibold uppercase'>
-                      {getInitials(user?.displayName || 'User')}
-                    </Text>
+                   {
+                     !user?.photoURL ? (
+                      <>
+                      <Text className='text-white  font-semibold uppercase'>
+                       {getInitials(user?.displayName || 'User')}
+                                </Text>
+                                </>)
+                                 : ( <Image
+                                src={user?.photoURL|| ""}
+                                alt=''
+                                className='w-16 h-16 rounded-full object-contain'
+                               />)
+                              }
                   </View>
                   <View className="ml-3 flex-1">
                     <Text className="text-white text-lg font-medium">{user?.displayName || "User"}</Text>
@@ -319,7 +324,7 @@ export default function Sidebar({
                   
                   <TouchableOpacity 
                     onPress={() => {
-                      onNavigate('/(dashboard)/dashboard/(tabs)/trash');
+                      onNavigate('(screens)/trash');
                       handleClose();
                     }}
                     className={`flex-row items-center px-4 py-3 rounded-xl mb-2 ${
@@ -352,18 +357,16 @@ export default function Sidebar({
                 <View className="mb-6">
                   <Text className="text-neutral-500 text-xs uppercase tracking-wider mb-3">Preferences</Text>
                   
-                  <View className="flex-row items-center justify-between px-4 py-3 rounded-xl mb-2">
-                    <View className="flex-row items-center">
-                      <Ionicons name="notifications-outline" size={20} color="#737373" />
-                      <Text className="text-neutral-300 ml-3">Notifications</Text>
-                    </View>
-                    <Switch
-                      value={notificationsEnabled}
-                      onValueChange={onNotificationsToggle || (() => {})}
-                      trackColor={{ false: '#3f3f46', true: '#3b82f6' }}
-                      thumbColor="#ffffff"
-                    />
-                  </View>
+                 <TouchableOpacity 
+  onPress={() => {
+    onNavigate("/(screens)/noti-settings");
+    handleClose();
+  }}
+  className="flex-row items-center px-4 py-3 rounded-xl mb-2"
+>
+  <Ionicons name="notifications-outline" size={20} color="#737373" />
+  <Text className="text-neutral-300 ml-3">Notification Settings</Text>
+</TouchableOpacity>
                   
                   <View className="flex-row items-center justify-between px-4 py-3 rounded-xl mb-2">
                     <View className="flex-row items-center">
