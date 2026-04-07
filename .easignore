@@ -43,7 +43,3 @@ app-example
 # generated native folders
 /ios
 /android
-
-google-services.json
-GoogleService-Info.plist
-medora-72e33-firebase-adminsdk-fbsvc-c159a21e03.json

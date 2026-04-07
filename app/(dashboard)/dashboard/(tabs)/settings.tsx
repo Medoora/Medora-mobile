@@ -2,6 +2,7 @@ import CustomDialogBox from '@/components/Custom-Dialog/Cus-dialog';
 import { auth, db } from '@/config/firebase/config';
 import { signOutUser } from '@/config/firebase/services/auth/auth';
 import { useAuth } from '@/context/auth-context';
+import { getInitials } from '@/utils/cryto';
 import { Ionicons } from '@expo/vector-icons';
 import { sendPasswordResetEmail, updateProfile } from 'firebase/auth';
 import { doc, getDoc, updateDoc } from 'firebase/firestore';
@@ -142,11 +143,19 @@ export default function SettingsScreen() {
         {/* Profile Header */}
         <View className="flex-row items-center gap-4 mb-6">
           <View className="w-16 h-16 bg-blue-500/20 rounded-full items-center justify-center">
-            <Image
+           {
+             !user?.photoURL ? (
+             <>
+             <Text className='text-white text-2xl font-semibold uppercase'>
+                {getInitials(user?.displayName || 'User')}
+             </Text>
+             </>)
+              : ( <Image
              src={user?.photoURL|| ""}
              alt=''
              className='w-16 h-16 rounded-full object-contain'
-            />
+            />)
+           }
           </View>
           <View>
             <Text className="text-white text-xl font-semibold">{displayName || 'User'}</Text>

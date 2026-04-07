@@ -3,6 +3,7 @@ import DateTimePicker from "@react-native-community/datetimepicker";
 import { Timestamp } from "firebase/firestore";
 import { useEffect, useRef, useState } from "react";
 import {
+  Alert,
   Animated,
   Text,
   TextInput,
@@ -10,23 +11,21 @@ import {
   View,
 } from "react-native";
 
-import { useAuth } from "@/hooks/auth/useAuth";
-
 import {
   createReminder,
   deleteReminder,
   getUserReminders,
   updateReminderStatus,
 } from "@/config/firebase/services/reminder/service";
+import { useAuth } from "@/hooks/auth/useAuth";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 export default function ReminderScreen() {
   const scrollY = useRef(new Animated.Value(0)).current;
-
   const { user } = useAuth();
 
   const [reminders, setReminders] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
-
   const [activeTab, setActiveTab] = useState("active");
 
   const [title, setTitle] = useState("");
@@ -40,7 +39,18 @@ export default function ReminderScreen() {
   const [showDate, setShowDate] = useState(false);
   const [showTime, setShowTime] = useState(false);
 
-  // 🔥 FETCH
+  // Get user's selected sound preference
+  const getUserSelectedSound = async (): Promise<string> => {
+    try {
+      const savedSound = await AsyncStorage.getItem('notification_sound');
+      return savedSound || 'default';
+    } catch (error) {
+      return 'default';
+    }
+  };
+
+
+  // Fetch reminders
   useEffect(() => {
     if (!user) return;
 
@@ -52,46 +62,80 @@ export default function ReminderScreen() {
     load();
   }, [user]);
 
-  // 🔥 SAVE
+  // Save reminder with push notification
   const handleSave = async () => {
-    if (!user || !title || !doctor || !date || !time) return;
+  if (!user || !title || !doctor || !date || !time) return;
 
-    setLoading(true);
+  setLoading(true);
 
-    const appointmentDate = new Date(
-      date.setHours(time.getHours(), time.getMinutes()),
-    );
+  const appointmentDate = new Date(
+    date.getFullYear(),
+    date.getMonth(),
+    date.getDate(),
+    time.getHours(),
+    time.getMinutes()
+  );
 
-    const sendAt = new Date(
-      appointmentDate.getTime() - Number(reminderBefore) * 60000,
-    );
+  const sendAt = new Date(
+    appointmentDate.getTime() - Number(reminderBefore) * 60000
+  );
 
-    await createReminder({
-      userId: user.uid,
-      userEmail: user.email,
-      title,
-      doctor,
-      notes,
-      appointmentDate: Timestamp.fromDate(appointmentDate),
-      reminderBeforeMinutes: Number(reminderBefore),
-      sendAt: Timestamp.fromDate(sendAt),
-    });
+  // Get user's selected sound (no need to pass separately, service will get it)
+  await createReminder({
+    userId: user.uid,
+    userEmail: user.email,
+    title,
+    doctor,
+    notes,
+    appointmentDate: Timestamp.fromDate(appointmentDate),
+    reminderBeforeMinutes: Number(reminderBefore),
+    sendAt: Timestamp.fromDate(sendAt),
+  });
 
-    const updated = await getUserReminders(user.uid);
-    setReminders(updated);
+  const updated = await getUserReminders(user.uid);
+  setReminders(updated);
 
-    setTitle("");
-    setDoctor("");
-    setNotes("");
-    setReminderBefore("30");
+  // Reset form
+  setTitle("");
+  setDoctor("");
+  setNotes("");
+  setReminderBefore("30");
+  setDate(null);
+  setTime(null);
 
-    setLoading(false);
-  };
+  setLoading(false);
+  Alert.alert('Success', 'Reminder created! You will be notified.');
+};
+
+// Update testReminderWithPush
+const testReminderWithPush = async () => {
+  if (!user?.uid) {
+    Alert.alert('Error', 'Please login first');
+    return;
+  }
+
+  const testDate = new Date();
+  testDate.setSeconds(testDate.getSeconds() + 10);
+  
+  await createReminder({
+    userId: user.uid,
+    userEmail: user.email,
+    title: 'Test Reminder',
+    doctor: 'Dr. Demo',
+    appointmentDate: Timestamp.fromDate(testDate),
+    sendAt: Timestamp.fromDate(testDate),
+    notes: 'This is a test reminder with push notification',
+    reminderBeforeMinutes: 0,
+  });
+  
+  Alert.alert('Success', 'Test reminder created! You will get a notification in 10 seconds.');
+};
 
   const filtered = reminders.filter((r) => {
     if (activeTab === "active") return r.status === "active";
     if (activeTab === "completed") return r.status === "completed";
     if (activeTab === "missed") return r.status === "missed";
+    return false;
   });
 
   const formatDate = (d: Date | null) =>
@@ -108,7 +152,7 @@ export default function ReminderScreen() {
       scrollEventThrottle={16}
       onScroll={Animated.event(
         [{ nativeEvent: { contentOffset: { y: scrollY } } }],
-        { useNativeDriver: true },
+        { useNativeDriver: true }
       )}
       className="flex-1 bg-black"
     >
@@ -208,11 +252,19 @@ export default function ReminderScreen() {
 
           <TouchableOpacity
             onPress={handleSave}
-            className="bg-white py-3 rounded-xl items-center"
+            disabled={loading}
+            className={`py-3 rounded-xl items-center ${loading ? 'bg-neutral-700' : 'bg-white'}`}
           >
-            <Text className="text-black font-medium">
+            <Text className={`font-medium ${loading ? 'text-neutral-400' : 'text-black'}`}>
               {loading ? "Saving..." : "Save Reminder"}
             </Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            onPress={testReminderWithPush}
+            className="bg-white py-3 rounded-xl mt-5 items-center"
+          >
+            <Text className="text-black font-medium">Test Reminder</Text>
           </TouchableOpacity>
         </View>
 
@@ -251,15 +303,12 @@ export default function ReminderScreen() {
             </View>
           ) : (
             filtered.map((item) => {
-              const date = item?.appointmentDate?.toDate?.();
-
+              const appointmentDate = item?.appointmentDate?.toDate?.();
               const isToday =
-                date && new Date().toDateString() === date.toDateString();
-
+                appointmentDate && new Date().toDateString() === appointmentDate.toDateString();
               const isTomorrow =
-                date &&
-                new Date(Date.now() + 86400000).toDateString() ===
-                  date.toDateString();
+                appointmentDate &&
+                new Date(Date.now() + 86400000).toDateString() === appointmentDate.toDateString();
 
               const borderColor = isToday
                 ? "border-red-500"
@@ -283,14 +332,12 @@ export default function ReminderScreen() {
                       <Text className="text-white font-semibold text-base">
                         {item.title}
                       </Text>
-
                       {item.doctor && (
                         <Text className="text-neutral-400 text-xs mt-1">
                           {item.doctor}
                         </Text>
                       )}
                     </View>
-
                     <View className={`px-2 py-1 rounded-md ${badgeColor}`}>
                       <Text className="text-xs font-medium">
                         {isToday
@@ -303,13 +350,9 @@ export default function ReminderScreen() {
                   </View>
 
                   <View className="flex-row items-center mt-3">
-                    <Ionicons
-                      name="calendar-outline"
-                      size={14}
-                      color="#9ca3af"
-                    />
+                    <Ionicons name="calendar-outline" size={14} color="#9ca3af" />
                     <Text className="text-neutral-400 text-xs ml-2">
-                      {date?.toLocaleString()}
+                      {appointmentDate?.toLocaleString()}
                     </Text>
                   </View>
 
@@ -330,11 +373,7 @@ export default function ReminderScreen() {
                       className="flex-1 border border-neutral-700 py-2 rounded-lg mr-2 items-center"
                     >
                       <View className="flex-row items-center">
-                        <Ionicons
-                          name="checkmark-circle-outline"
-                          size={16}
-                          color="#9ca3af"
-                        />
+                        <Ionicons name="checkmark-circle-outline" size={16} color="#9ca3af" />
                         <Text className="text-neutral-300 text-xs ml-1">
                           Complete
                         </Text>

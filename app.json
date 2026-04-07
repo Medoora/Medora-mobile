@@ -92,7 +92,22 @@
       "expo-web-browser",
       "expo-video",
       "expo-audio",
-      "expo-asset" 
+      "expo-asset",
+     [
+       "expo-notifications",
+       {
+         "icon": "./assets/logo/logo.png",
+         "color": "#3b82f6",
+         "sounds": [
+            "./assets/sounds/guitar.wav",
+            "./assets/sounds/msg.wav",
+            "./assets/sounds/sci_fi.wav",
+            "./assets/sounds/sci_fi2.wav",
+            "./assets/sounds/woss.wav"
+         ]
+       }
+      
+      ]
     ],
     "experiments": {
       "typedRoutes": true,

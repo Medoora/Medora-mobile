@@ -46,6 +46,12 @@ export default function ScreenLayout () {
          header: () => null
        }}
       />
+      <Stack.Screen 
+       name='noti-settings'
+       options={{
+         header: () => null
+       }}
+       />
     </Stack>
   )
 }
