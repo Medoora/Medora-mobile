@@ -3,9 +3,8 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useVideoPlayer, VideoView } from 'expo-video';
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo } from 'react';
 import {
-  ActivityIndicator,
   Image,
   Text,
   TouchableOpacity,
@@ -13,65 +12,31 @@ import {
 } from 'react-native';
 
 export default function WelcomeScreen() {
-  const [isVideoLoaded, setIsVideoLoaded] = useState(false);
-
-  // ✅ Stable random video (runs once)
+  // ✅ Stable random video
   const videoSource = useMemo(() => {
-   const videos = [
-    require('@/assets/videos/med-into-1.mp4'),
-    require('@/assets/videos/med-intro-2.mp4'),
-    require('@/assets/videos/med-intro-3.mp4')
-  ];
+    const videos = [
+      require('@/assets/videos/med-into-1.mp4'),
+      require('@/assets/videos/med-intro-2.mp4'),
+      require('@/assets/videos/med-intro-3.mp4'),
+    ];
     return videos[Math.floor(Math.random() * videos.length)];
   }, []);
 
-  // ✅ Initialize player
-  const player = useVideoPlayer(videoSource);
-
-  // ✅ Proper lifecycle handling
-  useEffect(() => {
-    if (!player) return;
-
+  // ✅ Player
+  const player = useVideoPlayer(videoSource, (player) => {
     player.loop = true;
     player.muted = true;
     player.play();
-
-    const sub = player.addListener('statusChange', ({ status }) => {
-      if (status === 'readyToPlay') {
-        setIsVideoLoaded(true);
-      }
-    });
-
-    return () => {
-      sub.remove();
-    };
-  }, [player]);
+  });
 
   return (
     <View style={{ flex: 1, backgroundColor: 'black' }}>
       <StatusBar style="light" />
 
-      {/* ✅ Loader */}
-      {!isVideoLoaded && (
-        <View
-          style={{
-            position: 'absolute',
-            inset: 0,
-            justifyContent: 'center',
-            alignItems: 'center',
-            zIndex: 20,
-          }}
-        >
-          <ActivityIndicator size="large" color="#ffffff" />
-          <Text style={{ color: 'rgba(255,255,255,0.7)', marginTop: 8 }}>
-            Loading experience...
-          </Text>
-        </View>
-      )}
-
-      {/* ✅ Video Background */}
+      {/* ✅ Video (no interaction, no loader) */}
       <VideoView
         player={player}
+        pointerEvents="none"
         style={{
           position: 'absolute',
           top: 0,
@@ -80,30 +45,22 @@ export default function WelcomeScreen() {
           bottom: 0,
         }}
         contentFit="cover"
+        nativeControls={false}
       />
 
-      {/* ✅ Gradient Overlay */}
+      {/* ✅ Gradient */}
       <LinearGradient
         colors={['transparent', 'rgba(0,0,0,0.7)', 'rgba(0,0,0,0.95)']}
         style={{
           position: 'absolute',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
+          inset: 0,
         }}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 0, y: 1 }}
       />
 
-      {/* ✅ Content */}
+      {/* ✅ UI */}
       <View
         style={{
-          position: 'absolute',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
+          flex: 1,
           paddingHorizontal: 24,
           paddingVertical: 48,
         }}
@@ -117,82 +74,50 @@ export default function WelcomeScreen() {
           />
         </View>
 
-        {/* Spacer */}
         <View style={{ flex: 1 }} />
 
         {/* Buttons */}
-        <View style={{ width: '100%' }}>
-          {/* Apple */}
+        <View>
           <TouchableOpacity
             onPress={() => router.push('/(auth)/sign-up')}
-            activeOpacity={0.9}
             style={{
               backgroundColor: '#fff',
-              paddingVertical: 16,
-              paddingHorizontal: 24,
+              padding: 16,
               borderRadius: 16,
               flexDirection: 'row',
               justifyContent: 'center',
               alignItems: 'center',
-              shadowColor: '#000',
-              shadowOffset: { width: 0, height: 2 },
-              shadowOpacity: 0.1,
-              shadowRadius: 4,
-              elevation: 3,
             }}
           >
             <FontAwesome name="apple" size={22} color="#000" />
-            <Text
-              style={{
-                color: '#000',
-                fontWeight: '500',
-                fontSize: 16,
-                marginLeft: 12,
-              }}
-            >
+            <Text style={{ marginLeft: 10, fontSize: 16 }}>
               Connect to Apple
             </Text>
           </TouchableOpacity>
 
-          {/* Other options */}
           <TouchableOpacity
             onPress={() => router.push('/(auth)/sign-up')}
             style={{
               backgroundColor: 'rgba(38,38,38,0.6)',
-              paddingVertical: 16,
-              paddingHorizontal: 24,
+              padding: 16,
               marginTop: 16,
               borderRadius: 16,
-              justifyContent: 'center',
               alignItems: 'center',
             }}
           >
-            <Text style={{ color: '#fff', fontWeight: '500' }}>
-              Other options
-            </Text>
+            <Text style={{ color: '#fff' }}>Other options</Text>
           </TouchableOpacity>
 
-          {/* Sign in */}
           <TouchableOpacity
             onPress={() => router.push('/(auth)/sign-in')}
-            style={{ marginTop: 16, paddingVertical: 8 }}
+            style={{ marginTop: 16 }}
           >
-            <Text
-              style={{
-                color: 'rgba(255,255,255,0.8)',
-                textAlign: 'center',
-              }}
-            >
-              Already have an account?{' '}
-              <Text style={{ color: '#fff', fontWeight: 'bold' }}>
-                Sign In
-              </Text>
+            <Text style={{ color: '#fff', textAlign: 'center' }}>
+              Already have an account? <Text style={{ fontWeight: 'bold' }}>Sign In</Text>
             </Text>
           </TouchableOpacity>
 
-          {/* Terms */}
           <Text
-           className='text-xs'
             style={{
               color: 'rgba(255,255,255,0.5)',
               textAlign: 'center',
@@ -200,15 +125,7 @@ export default function WelcomeScreen() {
               marginTop: 16,
             }}
           >
-            signing up, you agree to our{' '}
-            <Text className='text-xs' style={{ color: '#fff', fontWeight: '600' }}>
-              Terms of Service
-            </Text>{' '}
-            and{' '}
-            <Text className='text-xs' style={{ color: '#fff', fontWeight: '600' }}>
-              Privacy Policy
-            </Text>
-            .
+            Signing up, you agree to our Terms of Service and Privacy Policy.
           </Text>
         </View>
       </View>

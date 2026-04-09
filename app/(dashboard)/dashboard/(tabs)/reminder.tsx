@@ -108,7 +108,7 @@ export default function ReminderScreen() {
 };
 
 // Update testReminderWithPush
-const testReminderWithPush = async () => {
+/*  
   if (!user?.uid) {
     Alert.alert('Error', 'Please login first');
     return;
@@ -129,7 +129,7 @@ const testReminderWithPush = async () => {
   });
   
   Alert.alert('Success', 'Test reminder created! You will get a notification in 10 seconds.');
-};
+}; */
 
   const filtered = reminders.filter((r) => {
     if (activeTab === "active") return r.status === "active";
@@ -260,12 +260,12 @@ const testReminderWithPush = async () => {
             </Text>
           </TouchableOpacity>
 
-          <TouchableOpacity
+        {/*   <TouchableOpacity
             onPress={testReminderWithPush}
             className="bg-white py-3 rounded-xl mt-5 items-center"
           >
             <Text className="text-black font-medium">Test Reminder</Text>
-          </TouchableOpacity>
+          </TouchableOpacity> */}
         </View>
 
         {/* TABS */}

@@ -160,7 +160,7 @@ const NotificationSettingsScreen = () => {
         contentContainerStyle={{ paddingBottom: 40 }}
       >
         {/* Push Notifications */}
-        <View className="mt-6">
+        <View className="mt-0">
           <Text className="text-neutral-500 text-xs mb-2 tracking-widest">GENERAL</Text>
           <View className="flex-row justify-between items-center py-4">
             <View className="flex-1 pr-4">
@@ -224,7 +224,7 @@ const NotificationSettingsScreen = () => {
 
         {/* Options */}
         {pushEnabled && (
-          <View className="mt-8">
+          <View className="mt-5">
             <Text className="text-neutral-500 text-xs mb-3 tracking-widest">OPTIONS</Text>
             <View className="bg-neutral-950 rounded-2xl overflow-hidden">
               <View className="flex-row justify-between items-center px-4 py-4 border-b border-neutral-800">
@@ -260,7 +260,7 @@ const NotificationSettingsScreen = () => {
         <TouchableOpacity
           onPress={savePreferences}
           disabled={saving}
-          className="mt-10 py-3 rounded-full bg-blue-600 active:bg-blue-700"
+          className="mt-10 py-4 rounded-full bg-blue-600 active:bg-blue-700"
         >
           {saving ? (
             <ActivityIndicator size="small" color="white" />
@@ -268,10 +268,6 @@ const NotificationSettingsScreen = () => {
             <Text className="text-white text-center text-[15px] font-medium">Save changes</Text>
           )}
         </TouchableOpacity>
-
-        <Text className="text-neutral-600 text-xs text-center mt-6">
-          {pushEnabled ? 'Applies to all reminders' : 'Enable notifications to customize settings'}
-        </Text>
       </ScrollView>
     </DashboardWrapper>
   );

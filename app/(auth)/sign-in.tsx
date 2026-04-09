@@ -1,4 +1,5 @@
 import { GoogleSignInButton } from '@/components/buttons/google-button';
+import ForgotPassword from '@/components/modal/forgot-pass/forgot-password';
 import { directLogin, resetPassword } from '@/config/firebase/services/auth/auth';
 import { useAuth } from '@/context/auth-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -19,7 +20,7 @@ export default function SignIn() {
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
+ const [forgotModal, setForgotModal] = useState(false)
   const handleInputChange = (field: string, value: string) => {
     setFormData(prev => ({
       ...prev,
@@ -242,6 +243,7 @@ export default function SignIn() {
   };
 
   return (
+    <>
     <View className="flex-1 bg-[#0A0A0A]">
       <StatusBar style="light" />
       
@@ -323,7 +325,8 @@ export default function SignIn() {
                 
                 {/* Forgot Password Link */}
                 <TouchableOpacity 
-                  onPress={handleForgotPassword}
+                   
+                  onPress={() => setForgotModal(true)}
                   className="self-end mt-2"
                   disabled={loading || googleLoading}
                 >
@@ -413,5 +416,11 @@ export default function SignIn() {
         </ScrollView>
       </SafeAreaView>
     </View>
+    <ForgotPassword
+     visible={forgotModal}
+     onClose={() => setForgotModal(false)}
+     
+    />
+    </>
   );
 }

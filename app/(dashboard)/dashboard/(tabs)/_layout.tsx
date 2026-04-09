@@ -369,7 +369,7 @@ export default function TabsLayout() {
                 borderTopWidth: 1,
                 elevation: 0,
                 shadowOpacity: 0,
-                height: Platform.OS === "ios" ? 80 : 95,
+                height: Platform.OS === "ios" ? 80 : 105,
                 paddingBottom: Platform.OS === "ios" ? 25 : 10,
                 paddingTop: 10,
                 paddingLeft: 10,
@@ -465,13 +465,21 @@ export default function TabsLayout() {
 
         {/* Upload button */}
         {["Dashboard", "My Drive"].includes(currentTab) && (
-          <TouchableOpacity
+         Platform.OS === 'ios' ? (
+           <TouchableOpacity
             onPress={openUploadModal}
             className="absolute bg-blue-600 bottom-28 right-6 rounded-full flex items-center justify-center p-4 z-30 shadow-lg"
             style={{ elevation: 5 }}
           >
             <Ionicons color={"white"} size={24} name="cloud-upload" />
           </TouchableOpacity>
+         ) : ( <TouchableOpacity
+            onPress={openUploadModal}
+            className="absolute bg-blue-600 bottom-36 right-6 rounded-full flex items-center justify-center p-4 z-30 shadow-lg"
+            style={{ elevation: 5 }}
+          >
+            <Ionicons color={"white"} size={24} name="cloud-upload" />
+          </TouchableOpacity>)
         )}
 
         {/* Upload Modal */}

@@ -227,13 +227,13 @@ export default function Sidebar({
                      !user?.photoURL ? (
                       <>
                       <Text className='text-white  font-semibold uppercase'>
-                       {getInitials(user?.displayName || 'User')}
+                       {getInitials(user?.displayName|| 'User')}
                                 </Text>
                                 </>)
                                  : ( <Image
                                 src={user?.photoURL|| ""}
                                 alt=''
-                                className='w-16 h-16 rounded-full object-contain'
+                                className='w-12 h-12 rounded-full object-contain'
                                />)
                               }
                   </View>
