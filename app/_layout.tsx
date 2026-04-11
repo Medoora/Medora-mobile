@@ -8,10 +8,11 @@ import {
   DefaultTheme,
   ThemeProvider,
 } from "@react-navigation/native";
+import * as Linking from 'expo-linking';
 import { Stack, router } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { useEffect, useRef } from "react";
-import { ActivityIndicator, View } from "react-native";
+import { ActivityIndicator, Alert, View } from "react-native";
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import "react-native-reanimated";
 import "../global.css";
@@ -21,6 +22,42 @@ function RootLayoutNav() {
   const { isLoading, user } = useAuth();
   const colorScheme = useColorScheme();
   const responseListener = useRef<any>(null);
+
+  // Handle deep links (for password reset)
+  useEffect(() => {
+    const handleDeepLink = ({ url }: { url: string }) => {
+      const { path, queryParams } = Linking.parse(url);
+      console.log('🔗 Deep link received:', { path, queryParams });
+      
+      if (path === 'reset-success') {
+        Alert.alert(
+          'Password Reset Successful',
+          'Your password has been reset successfully. Please sign in with your new password.',
+          [
+            {
+              text: 'OK',
+              onPress: () => router.push('/(auth)/sign-in')
+            }
+          ]
+        );
+      }
+    };
+    
+    // Add event listener for deep links
+    const subscription = Linking.addEventListener('url', handleDeepLink);
+    
+    // Check if app was opened from a deep link
+    Linking.getInitialURL().then((url) => {
+      if (url) {
+        console.log('📱 App opened from URL:', url);
+        handleDeepLink({ url });
+      }
+    });
+    
+    return () => {
+      subscription.remove();
+    };
+  }, []);
 
   useEffect(() => {
     setupPushNotifications();

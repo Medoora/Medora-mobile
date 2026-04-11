@@ -16,8 +16,8 @@ import {
     View,
 } from 'react-native';
 
-const { height, width } = Dimensions.get('window');
-const MODAL_HEIGHT = height * 0.85; // 85% of screen height
+const { height } = Dimensions.get('window');
+const MODAL_HEIGHT = height * 0.85;
 
 interface Props {
   visible: boolean;
@@ -30,7 +30,6 @@ const ForgotPassword = ({ onClose, visible }: Props) => {
   const [emailSent, setEmailSent] = useState(false);
   const translateY = useRef(new Animated.Value(MODAL_HEIGHT)).current;
 
-  // Pan responder for slide down gesture
   const panResponder = useRef(
     PanResponder.create({
       onMoveShouldSetPanResponder: (_, gestureState) => {
@@ -87,8 +86,9 @@ const ForgotPassword = ({ onClose, visible }: Props) => {
       } else {
         Alert.alert('Error', result.error || 'Failed to send reset email');
       }
-    } catch (error) {
-      Alert.alert('Error', 'Something went wrong. Please try again.');
+    } catch (error: any) {
+      console.error('Password reset error:', error);
+      Alert.alert('Error', error?.message || 'Something went wrong. Please try again.');
     } finally {
       setLoading(false);
     }
