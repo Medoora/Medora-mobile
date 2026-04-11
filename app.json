@@ -18,15 +18,20 @@
         "ITSAppUsesNonExemptEncryption": false,
         "GIDClientID": "434901611189-cgjpvtga7th5nu7gb9pq37759ta0fo22.apps.googleusercontent.com"
       },
-      "associatedDomains": ["applinks:medora-web-kappa.vercel.app"]
+      "associatedDomains": ["applinks:medora-web-kappa.vercel.app"],
+      "icon": {
+        "dark": "./assets/icons/ios-dark.png",
+        "light": "./assets/icons/ios-light.png",
+        "tinted": "./assets/icons/ios-tinted.png"
+      }
     },
     "android": {
       "googleServicesFile": "./google-services.json",
       "adaptiveIcon": {
-        "backgroundColor": "#E6F4FE",
-        "foregroundImage": "./assets/images/android-icon-foreground.png",
-        "backgroundImage": "./assets/images/android-icon-background.png",
-        "monochromeImage": "./assets/images/android-icon-monochrome.png"
+        "backgroundColor": "#000",
+        "foregroundImage": "./assets/icons/adaptive-icon",
+        "backgroundImage": "./assets/icons/adaptive-icon",
+        "monochromeImage": "./assets/icons/adaptive-icon"
       },
       "predictiveBackGestureEnabled": false,
       "permissions": [
@@ -83,11 +88,12 @@
       [
         "expo-splash-screen",
         {
-          "image": "./assets/images/splash-icon.png",
+          "image": "./assets/icons/dark-frame.png",
           "imageWidth": 200,
-          "resizeMode": "contain",
+          "resizeMode": "cover",
           "backgroundColor": "#ffffff",
           "dark": {
+            "image": "./assets/icons/dark-frame.png",
             "backgroundColor": "#000000"
           }
         }
