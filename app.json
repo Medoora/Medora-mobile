@@ -16,8 +16,9 @@
           "NSAllowsArbitraryLoads": true
         },
         "ITSAppUsesNonExemptEncryption": false,
-         "GIDClientID": "434901611189-cgjpvtga7th5nu7gb9pq37759ta0fo22.apps.googleusercontent.com"
-      }
+        "GIDClientID": "434901611189-cgjpvtga7th5nu7gb9pq37759ta0fo22.apps.googleusercontent.com"
+      },
+      "associatedDomains": ["applinks:medora-web-kappa.vercel.app"]
     },
     "android": {
       "googleServicesFile": "./google-services.json",
@@ -42,7 +43,25 @@
         "android.permission.READ_MEDIA_VIDEO",
         "android.permission.READ_MEDIA_AUDIO"
       ],
-      "package": "com.anonymous.medoraapp"
+      "package": "com.anonymous.medoraapp",
+      "intentFilters": [
+        {
+          "action": "VIEW",
+          "data": [
+            {
+              "scheme": "https",
+              "host": "medora-web-kappa.vercel.app",
+              "pathPrefix": "/reset-password"
+            },
+            {
+              "scheme": "https",
+              "host": "medora-web-kappa.vercel.app",
+              "pathPrefix": "/reset-success"
+            }
+          ],
+          "category": ["BROWSABLE", "DEFAULT"]
+        }
+      ]
     },
     "web": {
       "bundler": "metro",
@@ -51,9 +70,9 @@
     },
     "plugins": [
       ["@react-native-google-signin/google-signin",
-          {
-      "iosUrlScheme": "com.googleusercontent.apps.434901611189-cgjpvtga7th5nu7gb9pq37759ta0fo22"
-    }
+        {
+          "iosUrlScheme": "com.googleusercontent.apps.434901611189-cgjpvtga7th5nu7gb9pq37759ta0fo22"
+        }
       ],
       [
         "expo-router",
@@ -93,20 +112,19 @@
       "expo-video",
       "expo-audio",
       "expo-asset",
-     [
-       "expo-notifications",
-       {
-         "icon": "./assets/logo/logo.png",
-         "color": "#3b82f6",
-         "sounds": [
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/logo/logo.png",
+          "color": "#3b82f6",
+          "sounds": [
             "./assets/sounds/guitar.wav",
             "./assets/sounds/msg.wav",
             "./assets/sounds/sci_fi.wav",
             "./assets/sounds/sci_fi2.wav",
             "./assets/sounds/woss.wav"
-         ]
-       }
-      
+          ]
+        }
       ]
     ],
     "experiments": {
