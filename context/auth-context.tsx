@@ -1,7 +1,6 @@
 // context/AuthContext.tsx
 import { auth, db } from "@/config/firebase/config";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { router } from "expo-router";
 import { onAuthStateChanged, User } from "firebase/auth";
 import { doc, getDoc } from "firebase/firestore";
 import React, { createContext, useContext, useEffect, useState } from "react";
@@ -114,23 +113,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     };
   }, []);
 
-  // Handle navigation based on auth state
-  useEffect(() => {
-    if (isLoading) return;
-
-    console.log("🧭 Navigation check:", {
-      user: !!user,
-      hasCompletedOnboarding,
-    });
-
-    if (!user) {
-      router.replace("/(auth)/welcome");
-    } else if (!hasCompletedOnboarding) {
-      router.replace("/(onboarding)/onboarding");
-    } else {
-      router.replace("/(dashboard)/dashboard/(tabs)");
-    }
-  }, [isLoading, user, hasCompletedOnboarding]);
 
   return (
     <AuthContext.Provider
