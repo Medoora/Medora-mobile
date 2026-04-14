@@ -85,19 +85,6 @@
           "origin": "https://expo-api-routes-video.expo.app"
         }
       ],
-      [
-        "expo-splash-screen",
-        {
-          "image": "./assets/icons/dark-frame.png",
-          "imageWidth": 200,
-          "resizeMode": "cover",
-          "backgroundColor": "#ffffff",
-          "dark": {
-            "image": "./assets/icons/dark-frame.png",
-            "backgroundColor": "#000000"
-          }
-        }
-      ],
       "@react-native-community/datetimepicker",
       [
         "expo-media-library",

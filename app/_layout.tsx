@@ -12,7 +12,7 @@ import * as Linking from 'expo-linking';
 import { Stack, router } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { useEffect, useRef } from "react";
-import { ActivityIndicator, Alert, View } from "react-native";
+import { Alert } from "react-native";
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import "react-native-reanimated";
 import "../global.css";
@@ -89,7 +89,7 @@ function RootLayoutNav() {
     });
   };
 
-  if (isLoading) {
+ /*  if (isLoading) {
     return (
       <View
         style={{
@@ -102,7 +102,7 @@ function RootLayoutNav() {
         <ActivityIndicator size="large" color="#FFFFFF" />
       </View>
     );
-  }
+  } */
 
   return (
     <ThemeProvider value={colorScheme === "dark" ? DarkTheme : DefaultTheme}>
