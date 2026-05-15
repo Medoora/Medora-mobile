@@ -28,10 +28,10 @@
     "android": {
       "googleServicesFile": "./google-services.json",
       "adaptiveIcon": {
-        "backgroundColor": "#000",
-        "foregroundImage": "./assets/icons/adaptive-icon",
-        "backgroundImage": "./assets/icons/adaptive-icon",
-        "monochromeImage": "./assets/icons/adaptive-icon"
+        "backgroundColor": "#251E1E",
+        "foregroundImage": "./assets/icons/adaptive-icon.png",
+        "backgroundImage": "./assets/icons/adaptive-icon.png",
+        "monochromeImage": "./assets/icons/adaptive-icon.png"
       },
       "predictiveBackGestureEnabled": false,
       "permissions": [
