@@ -6,8 +6,9 @@ import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router, usePathname } from 'expo-router';
 import React, { useEffect, useRef, useState } from 'react';
-import { Alert, Animated, Dimensions, Image, Modal, Platform, Switch, Text, TouchableOpacity, View } from 'react-native';
+import { Animated, Dimensions, Image, Modal, Platform, Switch, Text, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import CustomDialogBox from '../Custom-Dialog/Cus-dialog';
 
 const { width, height } = Dimensions.get('window');
 const SIDEBAR_WIDTH = 320;
@@ -40,6 +41,7 @@ export default function Sidebar({
   const insets = useSafeAreaInsets();
   const [storageInfo, setStorageInfo] = useState<UserStorage | null>(null);
   const [loadingStorage, setLoadingStorage] = useState(true);
+  const [isLoginVisible, setIsLoginVisible] = useState(false)
 
   const getCurrentTab = () => {
     if (pathname.includes('mydrive')) return 'My Drive';
@@ -91,29 +93,20 @@ export default function Sidebar({
     }
   }, [isVisible]);
 
-  const handleSignOut = async () => {
-    Alert.alert(
-      'Sign Out',
-      'Are you sure you want to sign out?',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Sign Out',
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              await signOutUser();
-              router.replace('/(auth)/sign-in');
-            } catch (error) {
-              console.error('Sign out error:', error);
-              Alert.alert('Error', 'Failed to sign out. Please try again.');
-            }
-          }
-        }
-      ]
-    );
-  };
-
+const handleSignOut = async () => {
+  try {
+    await signOutUser();
+    setIsLoginVisible(false); // Close dialog first
+    handleClose(); // Close the sidebar
+    // Small delay to ensure animations complete
+    setTimeout(() => {
+      router.push("/(auth)/sign-in");
+    }, 300);
+  } catch (error) {
+    console.log("Error", error);
+    setIsLoginVisible(false); // Close dialog even on error
+  }
+};
 
 
   const handleClose = () => {
@@ -412,7 +405,7 @@ export default function Sidebar({
                 {/* Sign Out Button */}
                 <View className="pt-4 pb-8">
                   <TouchableOpacity 
-                    onPress={handleSignOut}
+                    onPress={() => setIsLoginVisible(true)}
                     className="flex-row items-center justify-center gap-2 py-3 rounded-xl bg-red-500/10"
                   >
                     <Ionicons name="log-out-outline" size={18} color="#ef4444" />
@@ -438,6 +431,19 @@ export default function Sidebar({
           </View>
         </Animated.View>
       </View>
+
+      <CustomDialogBox
+       visible={isLoginVisible}
+      title={`Sign out ${user?.displayName}`} 
+      actionButtonName='Logout'
+      message='Are You Sure You Want to SignOut ?'
+      onCancel={() => setIsLoginVisible(false)}
+      onConfirm={() => {
+         handleSignOut()
+         setIsLoginVisible(false)
+      }}
+
+      />
     </Modal>
   );
 }
