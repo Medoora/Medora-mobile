@@ -10,6 +10,7 @@ import * as ImagePicker from 'expo-image-picker';
 import * as MediaLibrary from 'expo-media-library';
 import React from 'react';
 import { ActivityIndicator, Alert, Animated, Dimensions, Modal, Pressable, ScrollView, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import CustomDialogBox from '../Custom-Dialog/Cus-dialog';
 
 const { width, height } = Dimensions.get('window');
 
@@ -61,12 +62,18 @@ export default function UploadModal({ visible, onClose, onUpload, onUploadSucces
   const [uploadProgress, setUploadProgress] = React.useState(0);
   const [cameraPermission, requestCameraPermission] = useCameraPermissions();
   const [mediaPermission, requestMediaPermission] = MediaLibrary.usePermissions();
+  const [showAlert, setShowAlert] = React.useState(false);
+  const [alertConfig, setAlertConfig] = React.useState({
+    title: '',
+    message: '',
+    onConfirm: () => {},
+    confirmText: 'OK'
+  });
   const modalSlideAnim = React.useRef(new Animated.Value(height)).current;
   const { user } = useAuth();
 
   // Theme-aware colors
   const modalBg = isDark ? 'bg-neutral-900' : 'bg-white';
-  
   const textPrimary = isDark ? 'text-white' : 'text-black';
   const textSecondary = isDark ? 'text-neutral-400' : 'text-gray-500';
   const textTertiary = isDark ? 'text-neutral-500' : 'text-gray-400';
@@ -98,6 +105,19 @@ export default function UploadModal({ visible, onClose, onUpload, onUploadSucces
       setUploadProgress(0);
     }
   }, [visible]);
+
+  const showCustomAlert = (title: string, message: string, onConfirm?: () => void, confirmText: string = 'OK') => {
+    setAlertConfig({
+      title,
+      message,
+      onConfirm: () => {
+        if (onConfirm) onConfirm();
+        setShowAlert(false);
+      },
+      confirmText
+    });
+    setShowAlert(true);
+  };
 
   const handleClose = () => {
     Animated.timing(modalSlideAnim, {
@@ -154,7 +174,7 @@ export default function UploadModal({ visible, onClose, onUpload, onUploadSucces
                 }
               } catch (error) {
                 console.error('Photo pick error:', error);
-                Alert.alert('Error', 'Failed to pick from photos');
+                showCustomAlert('Error', 'Failed to pick from photos');
               }
             },
           },
@@ -189,7 +209,7 @@ export default function UploadModal({ visible, onClose, onUpload, onUploadSucces
                 }
               } catch (error) {
                 console.error('File pick error:', error);
-                Alert.alert('Error', 'Failed to pick file');
+                showCustomAlert('Error', 'Failed to pick file');
               }
             },
           },
@@ -202,7 +222,7 @@ export default function UploadModal({ visible, onClose, onUpload, onUploadSucces
       );
     } catch (error) {
       console.error('File pick error:', error);
-      Alert.alert('Error', 'Failed to pick file');
+      showCustomAlert('Error', 'Failed to pick file');
     }
   };
 
@@ -210,7 +230,7 @@ export default function UploadModal({ visible, onClose, onUpload, onUploadSucces
     if (!cameraPermission?.granted) {
       const permission = await requestCameraPermission();
       if (!permission.granted) {
-        Alert.alert('Permission Required', 'Camera permission is needed to take photos');
+        showCustomAlert('Permission Required', 'Camera permission is needed to take photos');
         return;
       }
     }
@@ -218,7 +238,7 @@ export default function UploadModal({ visible, onClose, onUpload, onUploadSucces
     if (!mediaPermission?.granted) {
       const permission = await requestMediaPermission();
       if (!permission.granted) {
-        Alert.alert('Permission Required', 'Media library permission is needed to save photos');
+        showCustomAlert('Permission Required', 'Media library permission is needed to save photos');
         return;
       }
     }
@@ -241,33 +261,32 @@ export default function UploadModal({ visible, onClose, onUpload, onUploadSucces
           setFileName(`photo_${Date.now()}.jpg`);
         }
       } catch (error) {
-        Alert.alert('Error', 'Failed to take picture');
+        showCustomAlert('Error', 'Failed to take picture');
       }
     }
   };
 
   const handleUpload = async () => {
     if (!selectedFile) {
-      Alert.alert('No File', 'Please select a file first');
+      showCustomAlert('No File', 'Please select a file first');
       return;
     }
     
     if (!selectedCategory) {
-      Alert.alert('Missing Info', 'Please select document type');
+      showCustomAlert('Missing Info', 'Please select document type');
       return;
     }
 
     if (!user) {
-      Alert.alert('Error', 'You must be logged in to upload');
+      showCustomAlert('Error', 'You must be logged in to upload');
       return;
     }
 
     const hasEnoughSpace = await StorageService.hasEnoughSpace(user.uid, selectedFile.size || 0);
     if (!hasEnoughSpace) {
-      Alert.alert(
+      showCustomAlert(
         'Storage Full',
-        'You have reached your storage limit (500 MB). Please delete some files or upgrade your plan to upload more.',
-        [{ text: 'OK' }]
+        'You have reached your storage limit (500 MB). Please delete some files or upgrade your plan to upload more.'
       );
       return;
     }
@@ -340,12 +359,13 @@ export default function UploadModal({ visible, onClose, onUpload, onUploadSucces
         onUploadSuccess({ id: documentId, ...documentData });
       }
       
-      Alert.alert('Success', 'File uploaded successfully!');
-      handleClose();
+      showCustomAlert('Success', 'File uploaded successfully!', () => {
+        handleClose();
+      });
       
     } catch (error) {
       console.error('Upload error:', error);
-      Alert.alert('Error', 'Failed to upload file. Please try again.');
+      showCustomAlert('Error', 'Failed to upload file. Please try again.');
     } finally {
       setIsUploading(false);
       setUploadProgress(0);
@@ -412,256 +432,268 @@ export default function UploadModal({ visible, onClose, onUpload, onUploadSucces
   }
 
   return (
-    <Modal
-      transparent={true}
-      visible={visible}
-      animationType="none"
-      onRequestClose={handleClose}
-    >
-      <View className="flex-1 bg-black/70">
-        <TouchableOpacity 
-          className="flex-1" 
-          activeOpacity={1} 
-          onPress={handleClose}
-        />
-        <Animated.View 
-          style={{
-            transform: [{ translateY: modalSlideAnim }],
-            maxHeight: height * 0.9,
-          }}
-          className={`rounded-t-3xl ${modalBg}`}
-        >
-          <View className={`flex-row justify-between items-center p-5 `}>
-            <Text className={`${textPrimary} text-xl font-semibold`}>Upload Medical File</Text>
-            <TouchableOpacity onPress={handleClose}>
-              <Ionicons name="close" size={24} color={iconColor} />
-            </TouchableOpacity>
-          </View>
-
-          <ScrollView 
-            showsVerticalScrollIndicator={false} 
-            className="p-5"
-            contentContainerStyle={{ paddingBottom: 20 }}
+    <>
+      <Modal
+        transparent={true}
+        visible={visible}
+        animationType="none"
+        onRequestClose={handleClose}
+      >
+        <View className="flex-1 bg-black/70">
+          <TouchableOpacity 
+            className="flex-1" 
+            activeOpacity={1} 
+            onPress={handleClose}
+          />
+          <Animated.View 
+            style={{
+              transform: [{ translateY: modalSlideAnim }],
+              maxHeight: height * 0.9,
+            }}
+            className={`rounded-t-3xl ${modalBg}`}
           >
-            {/* Upload Type Selection */}
-            <View className="flex-row gap-3 mb-6">
-              <TouchableOpacity
-                onPress={() => setUploadType('file')}
-                className={`flex-1 py-3 rounded-xl items-center ${
-                  uploadType === 'file' ? selectedBg : buttonBg
-                }`}
-              >
-                <Ionicons name="document-outline" size={24} color="white" />
-                <Text className="text-white text-sm mt-1">File</Text>
-              </TouchableOpacity>
-              
-              <TouchableOpacity
-                onPress={handleCameraOpen}
-                className={`flex-1 py-3 rounded-xl items-center  ${
-                  uploadType === 'camera' ? selectedBg : buttonBg
-                }`}
-              >
-                <Ionicons name="camera-outline" size={24}  />
-                <Text className=" text-sm mt-1">Camera</Text>
+            <View className={`flex-row justify-between items-center p-5 `}>
+              <Text className={`${textPrimary} text-xl font-semibold`}>Upload Medical File</Text>
+              <TouchableOpacity onPress={handleClose}>
+                <Ionicons name="close" size={24} color={iconColor} />
               </TouchableOpacity>
             </View>
 
-            {/* File Preview Section */}
-            {selectedFile ? (
-              <View className="mb-5">
-                <Text className={`${textSecondary} text-sm mb-2`}>Selected File</Text>
-                <View className={`relative ${inputBg} rounded-xl p-4 flex-row items-center`}>
-                  <Ionicons 
-                    name={selectedFile.type?.startsWith('image/') ? "image-outline" : "document-text-outline"} 
-                    size={32} 
-                    color="#3b82f6" 
-                  />
-                  <View className="flex-1 ml-3">
-                    <Text className={`${textPrimary} font-medium`} numberOfLines={1}>
-                      {selectedFile.name}
-                    </Text>
-                    <Text className={`${textSecondary} text-xs`}>
-                      {selectedFile.size ? `${(selectedFile.size / 1024).toFixed(2)} KB` : 'Unknown size'}
-                    </Text>
+            <ScrollView 
+              showsVerticalScrollIndicator={false} 
+              className="p-5"
+              contentContainerStyle={{ paddingBottom: 20 }}
+            >
+              {/* Upload Type Selection */}
+              <View className="flex-row gap-3 mb-6">
+                <TouchableOpacity
+                  onPress={() => setUploadType('file')}
+                  className={`flex-1 py-3 rounded-xl items-center ${
+                    uploadType === 'file' ? selectedBg : buttonBg
+                  }`}
+                >
+                  <Ionicons name="document-outline" size={24} color="white" />
+                  <Text className="text-white text-sm mt-1">File</Text>
+                </TouchableOpacity>
+                
+                <TouchableOpacity
+                  onPress={handleCameraOpen}
+                  className={`flex-1 py-3 rounded-xl items-center  ${
+                    uploadType === 'camera' ? selectedBg : buttonBg
+                  }`}
+                >
+                  <Ionicons name="camera-outline" size={24}  />
+                  <Text className=" text-sm mt-1">Camera</Text>
+                </TouchableOpacity>
+              </View>
+
+              {/* File Preview Section */}
+              {selectedFile ? (
+                <View className="mb-5">
+                  <Text className={`${textSecondary} text-sm mb-2`}>Selected File</Text>
+                  <View className={`relative ${inputBg} rounded-xl p-4 flex-row items-center`}>
+                    <Ionicons 
+                      name={selectedFile.type?.startsWith('image/') ? "image-outline" : "document-text-outline"} 
+                      size={32} 
+                      color="#3b82f6" 
+                    />
+                    <View className="flex-1 ml-3">
+                      <Text className={`${textPrimary} font-medium`} numberOfLines={1}>
+                        {selectedFile.name}
+                      </Text>
+                      <Text className={`${textSecondary} text-xs`}>
+                        {selectedFile.size ? `${(selectedFile.size / 1024).toFixed(2)} KB` : 'Unknown size'}
+                      </Text>
+                    </View>
+                    <TouchableOpacity
+                      onPress={removeSelectedFile}
+                      className="bg-black/50 rounded-full p-2"
+                    >
+                      <Ionicons name="close" size={18} color="white" />
+                    </TouchableOpacity>
                   </View>
-                  <TouchableOpacity
-                    onPress={removeSelectedFile}
-                    className="bg-black/50 rounded-full p-2"
-                  >
-                    <Ionicons name="close" size={18} color="white" />
-                  </TouchableOpacity>
-                </View>
-              </View>
-            ) : (
-              <TouchableOpacity
-                onPress={uploadType === 'file' ? handleFilePick : handleCameraOpen}
-                className={`mb-5 ${buttonBg} rounded-xl p-8 items-center justify-center border border-neutral-700 border-dashed`}
-              >
-                <Ionicons 
-                  name={uploadType === 'file' ? "cloud-upload-outline" : "camera-outline"} 
-                  size={48} 
-                  color={iconColor} 
-                />
-                <Text className={`${textSecondary} mt-2 text-center`}>
-                  {uploadType === 'file' ? 'Tap to select a file' : 'Tap to take a photo'}
-                </Text>
-                <Text className={`${textTertiary} text-xs mt-1`}>
-                  {uploadType === 'file' ? 'Supports images, PDFs, Word, Excel, and more' : 'Take a photo of your medical document'}
-                </Text>
-              </TouchableOpacity>
-            )}
-
-            {/* File Name Input */}
-            <View className="mb-5">
-              <Text className={`${textSecondary} text-sm mb-2`}>File Name</Text>
-              <TextInput
-                className={`${inputBg} ${textPrimary} rounded-xl px-4 py-3`}
-                placeholder="Enter file name"
-                placeholderTextColor={iconColor}
-                value={fileName}
-                onChangeText={setFileName}
-              />
-            </View>
-
-            {/* Document Type Dropdown */}
-            <View className="mb-5">
-              <Text className={`${textSecondary} text-sm mb-2`}>Document Type</Text>
-              <Pressable
-                onPress={() => setIsDropdownOpen(!isDropdownOpen)}
-                className={`${inputBg} rounded-xl px-4 py-3 flex-row justify-between items-center`}
-              >
-                <Text className={selectedCategory ? textPrimary : textSecondary}>
-                  {selectedCategoryData?.label || 'Select document type'}
-                </Text>
-                <Ionicons 
-                  name={isDropdownOpen ? "chevron-up" : "chevron-down"} 
-                  size={20} 
-                  color={iconColor} 
-                />
-              </Pressable>
-
-              {isDropdownOpen && (
-                <View className={`${dropdownBg} rounded-xl mt-2 max-h-80`}>
-                  <ScrollView showsVerticalScrollIndicator={false}>
-                    {Object.entries(getGroupedCategories()).map(([group, categories]) => (
-                      <View key={group}>
-                        <Text className="text-neutral-500 text-xs uppercase px-4 pt-3 pb-1">
-                          {group}
-                        </Text>
-                        {categories.map((category) => (
-                          <TouchableOpacity
-                            key={category.value}
-                            onPress={() => {
-                              setSelectedCategory(category.value);
-                              setIsDropdownOpen(false);
-                            }}
-                            className={`px-4 py-3 ${
-                              selectedCategory === category.value ? 'bg-blue-500/20' : ''
-                            }`}
-                          >
-                            <Text className={`text-sm ${
-                              selectedCategory === category.value ? 'text-blue-500' : dropdownText
-                            }`}>
-                              {category.label}
-                            </Text>
-                          </TouchableOpacity>
-                        ))}
-                      </View>
-                    ))}
-                  </ScrollView>
-                </View>
-              )}
-            </View>
-
-            {/* Star Option */}
-            <TouchableOpacity
-              onPress={() => setIsStarred(!isStarred)}
-              className={`flex-row items-center gap-3 mb-5 p-3 ${starBg} rounded-xl`}
-            >
-              <Ionicons 
-                name={isStarred ? "star" : "star-outline"} 
-                size={22} 
-                color={isStarred ? "#fbbf24" : iconColor} 
-              />
-              <Text className={`${textPrimary} flex-1`}>Star this file</Text>
-              {isStarred && (
-                <Text className={`${textSecondary} text-xs`}>Important</Text>
-              )}
-            </TouchableOpacity>
-
-            {/* Tags Input */}
-            <View className="mb-5">
-              <Text className={`${textSecondary} text-sm mb-2`}>Tags (comma separated)</Text>
-              <TextInput
-                className={`${inputBg} ${textPrimary} rounded-xl px-4 py-3`}
-                placeholder="e.g., urgent, follow-up, cardiology"
-                placeholderTextColor={iconColor}
-                value={tags}
-                onChangeText={setTags}
-              />
-            </View>
-
-            {/* Description */}
-            <View className="mb-6">
-              <Text className={`${textSecondary} text-sm mb-2`}>Description (Optional)</Text>
-              <TextInput
-                className={`${inputBg} ${textPrimary} rounded-xl px-4 py-3`}
-                placeholder="Add description..."
-                placeholderTextColor={iconColor}
-                multiline
-                numberOfLines={3}
-                textAlignVertical="top"
-                value={description}
-                onChangeText={setDescription}
-              />
-            </View>
-
-            {/* Upload Progress */}
-            {isUploading && (
-              <View className="mb-4">
-                <View className="flex-row justify-between mb-2">
-                  <Text className={`${textSecondary} text-sm`}>Uploading to Cloud...</Text>
-                  <Text className="text-blue-500 text-sm">{Math.round(uploadProgress)}%</Text>
-                </View>
-                <View className={`h-2 ${progressBarBg} rounded-full overflow-hidden`}>
-                  <View className="h-full bg-blue-500 rounded-full" style={{ width: `${uploadProgress}%` }} />
-                </View>
-              </View>
-            )}
-
-            {/* Upload Button */}
-            <TouchableOpacity
-              onPress={handleUpload}
-              disabled={!selectedFile || isUploading}
-              className={`py-4 rounded-xl mb-3 ${selectedFile && !isUploading ? 'bg-blue-500' : buttonBg}`}
-            >
-              {isUploading ? (
-                <View className="flex-row items-center justify-center gap-2">
-                  <ActivityIndicator color="white" size="small" />
-                  <Text className="text-white text-center font-semibold text-base">
-                    Uploading...
-                  </Text>
                 </View>
               ) : (
-                <Text className={`text-center font-semibold text-base ${selectedFile ? 'text-white' : textSecondary}`}>
-                  Upload to Cloud
-                </Text>
+                <TouchableOpacity
+                  onPress={uploadType === 'file' ? handleFilePick : handleCameraOpen}
+                  className={`mb-5 ${buttonBg} rounded-xl p-8 items-center justify-center border border-neutral-700 border-dashed`}
+                >
+                  <Ionicons 
+                    name={uploadType === 'file' ? "cloud-upload-outline" : "camera-outline"} 
+                    size={48} 
+                    color={iconColor} 
+                  />
+                  <Text className={`${textSecondary} mt-2 text-center`}>
+                    {uploadType === 'file' ? 'Tap to select a file' : 'Tap to take a photo'}
+                  </Text>
+                  <Text className={`${textTertiary} text-xs mt-1`}>
+                    {uploadType === 'file' ? 'Supports images, PDFs, Word, Excel, and more' : 'Take a photo of your medical document'}
+                  </Text>
+                </TouchableOpacity>
               )}
-            </TouchableOpacity>
 
-            {/* Cancel Button */}
-            <TouchableOpacity
-              onPress={handleClose}
-              className="py-3 rounded-xl mb-4"
-              disabled={isUploading}
-            >
-              <Text className={`${textSecondary} text-center`}>
-                Cancel
-              </Text>
-            </TouchableOpacity>
-          </ScrollView>
-        </Animated.View>
-      </View>
-    </Modal>
+              {/* File Name Input */}
+              <View className="mb-5">
+                <Text className={`${textSecondary} text-sm mb-2`}>File Name</Text>
+                <TextInput
+                  className={`${inputBg} ${textPrimary} rounded-xl px-4 py-3`}
+                  placeholder="Enter file name"
+                  placeholderTextColor={iconColor}
+                  value={fileName}
+                  onChangeText={setFileName}
+                />
+              </View>
+
+              {/* Document Type Dropdown */}
+              <View className="mb-5">
+                <Text className={`${textSecondary} text-sm mb-2`}>Document Type</Text>
+                <Pressable
+                  onPress={() => setIsDropdownOpen(!isDropdownOpen)}
+                  className={`${inputBg} rounded-xl px-4 py-3 flex-row justify-between items-center`}
+                >
+                  <Text className={selectedCategory ? textPrimary : textSecondary}>
+                    {selectedCategoryData?.label || 'Select document type'}
+                  </Text>
+                  <Ionicons 
+                    name={isDropdownOpen ? "chevron-up" : "chevron-down"} 
+                    size={20} 
+                    color={iconColor} 
+                  />
+                </Pressable>
+
+                {isDropdownOpen && (
+                  <View className={`${dropdownBg} rounded-xl mt-2 max-h-80`}>
+                    <ScrollView showsVerticalScrollIndicator={false}>
+                      {Object.entries(getGroupedCategories()).map(([group, categories]) => (
+                        <View key={group}>
+                          <Text className="text-neutral-500 text-xs uppercase px-4 pt-3 pb-1">
+                            {group}
+                          </Text>
+                          {categories.map((category) => (
+                            <TouchableOpacity
+                              key={category.value}
+                              onPress={() => {
+                                setSelectedCategory(category.value);
+                                setIsDropdownOpen(false);
+                              }}
+                              className={`px-4 py-3 ${
+                                selectedCategory === category.value ? 'bg-blue-500/20' : ''
+                              }`}
+                            >
+                              <Text className={`text-sm ${
+                                selectedCategory === category.value ? 'text-blue-500' : dropdownText
+                              }`}>
+                                {category.label}
+                              </Text>
+                            </TouchableOpacity>
+                          ))}
+                        </View>
+                      ))}
+                    </ScrollView>
+                  </View>
+                )}
+              </View>
+
+              {/* Star Option */}
+              <TouchableOpacity
+                onPress={() => setIsStarred(!isStarred)}
+                className={`flex-row items-center gap-3 mb-5 p-3 ${starBg} rounded-xl`}
+              >
+                <Ionicons 
+                  name={isStarred ? "star" : "star-outline"} 
+                  size={22} 
+                  color={isStarred ? "#fbbf24" : iconColor} 
+                />
+                <Text className={`${textPrimary} flex-1`}>Star this file</Text>
+                {isStarred && (
+                  <Text className={`${textSecondary} text-xs`}>Important</Text>
+                )}
+              </TouchableOpacity>
+
+              {/* Tags Input */}
+              <View className="mb-5">
+                <Text className={`${textSecondary} text-sm mb-2`}>Tags (comma separated)</Text>
+                <TextInput
+                  className={`${inputBg} ${textPrimary} rounded-xl px-4 py-3`}
+                  placeholder="e.g., urgent, follow-up, cardiology"
+                  placeholderTextColor={iconColor}
+                  value={tags}
+                  onChangeText={setTags}
+                />
+              </View>
+
+              {/* Description */}
+              <View className="mb-6">
+                <Text className={`${textSecondary} text-sm mb-2`}>Description (Optional)</Text>
+                <TextInput
+                  className={`${inputBg} ${textPrimary} rounded-xl px-4 py-3`}
+                  placeholder="Add description..."
+                  placeholderTextColor={iconColor}
+                  multiline
+                  numberOfLines={3}
+                  textAlignVertical="top"
+                  value={description}
+                  onChangeText={setDescription}
+                />
+              </View>
+
+              {/* Upload Progress */}
+              {isUploading && (
+                <View className="mb-4">
+                  <View className="flex-row justify-between mb-2">
+                    <Text className={`${textSecondary} text-sm`}>Uploading to Cloud...</Text>
+                    <Text className="text-blue-500 text-sm">{Math.round(uploadProgress)}%</Text>
+                  </View>
+                  <View className={`h-2 ${progressBarBg} rounded-full overflow-hidden`}>
+                    <View className="h-full bg-blue-500 rounded-full" style={{ width: `${uploadProgress}%` }} />
+                  </View>
+                </View>
+              )}
+
+              {/* Upload Button */}
+              <TouchableOpacity
+                onPress={handleUpload}
+                disabled={!selectedFile || isUploading}
+                className={`py-4 rounded-xl mb-3 ${selectedFile && !isUploading ? 'bg-blue-500' : buttonBg}`}
+              >
+                {isUploading ? (
+                  <View className="flex-row items-center justify-center gap-2">
+                    <ActivityIndicator color="white" size="small" />
+                    <Text className="text-white text-center font-semibold text-base">
+                      Uploading...
+                    </Text>
+                  </View>
+                ) : (
+                  <Text className={`text-center font-semibold text-base ${selectedFile ? 'text-white' : textSecondary}`}>
+                    Upload to Cloud
+                  </Text>
+                )}
+              </TouchableOpacity>
+
+              {/* Cancel Button */}
+              <TouchableOpacity
+                onPress={handleClose}
+                className="py-3 rounded-xl mb-4"
+                disabled={isUploading}
+              >
+                <Text className={`${textSecondary} text-center`}>
+                  Cancel
+                </Text>
+              </TouchableOpacity>
+            </ScrollView>
+          </Animated.View>
+        </View>
+      </Modal>
+
+      {/* Custom Dialog */}
+      <CustomDialogBox
+        visible={showAlert}
+        title={alertConfig.title}
+        message={alertConfig.message}
+        onConfirm={alertConfig.onConfirm}
+        onCancel={() => setShowAlert(false)}
+        actionButtonName={alertConfig.confirmText}
+      />
+    </>
   );
 }
