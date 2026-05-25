@@ -1,3 +1,4 @@
+import { useAppTheme } from '@/context/theme-context';
 import { Ionicons } from '@expo/vector-icons';
 import AntDesign from '@expo/vector-icons/AntDesign';
 import { router } from 'expo-router';
@@ -21,36 +22,44 @@ export default function DashboardWrapper({
   rightIconName = "options-outline",
   onRightIconPress 
 }: DashboardWrapperProps) {
+  const { isDark } = useAppTheme();
   const [isSidebarVisible, setIsSidebarVisible] = useState(false);
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
-  const [darkMode, setDarkMode] = useState(true);
+  const [darkMode, setDarkMode] = useState(isDark);
+
+  // Theme-aware colors
+  const bgColor = isDark ? 'bg-black' : 'bg-white';
+  const headerBg = isDark ? 'bg-black' : 'bg-white';
+  const textColor = isDark ? 'text-white' : 'text-black';
+  const iconColor = isDark ? 'white' : 'black';
+  const statusBarStyle = isDark ? 'light-content' : 'dark-content';
 
   const handleNavigate = (route: string) => {
     router.push(route as any);
   };
 
   return (
-    <View className="flex-1 bg-black">
-      <StatusBar barStyle="light-content" />
+    <View className={`flex-1 ${bgColor}`}>
+      <StatusBar barStyle={statusBarStyle} />
       
       {/* Header */}
-      <SafeAreaView edges={['top', 'left', 'right']} className="bg-black">
+      <SafeAreaView edges={['top', 'left', 'right']} className={headerBg}>
         <View className="flex-row items-center justify-between px-4 pb-2">
           <TouchableOpacity 
             onPress={() => setIsSidebarVisible(true)} 
             className="w-10 h-10 items-center justify-center"
           >
-            <AntDesign name="align-left" size={20} color="white" />
+            <AntDesign name="align-left" size={20} color={iconColor} />
           </TouchableOpacity>
           
-          <Text className="text-white text-lg font-semibold">{title}</Text>
+          <Text className={`text-lg font-semibold ${textColor}`}>{title}</Text>
           
           {showRightIcon ? (
             <TouchableOpacity 
               onPress={onRightIconPress || (() => {})} 
               className="w-10 h-10 items-center justify-center"
             >
-              <Ionicons name={rightIconName} size={22} color="white" />
+              <Ionicons name={rightIconName} size={22} color={iconColor} />
             </TouchableOpacity>
           ) : (
             <View className="w-10 h-10" />

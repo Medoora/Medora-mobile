@@ -1,19 +1,20 @@
 import { resetPassword } from '@/config/firebase/services/auth/auth';
+import { useAppTheme } from '@/context/theme-context';
 import { Ionicons } from '@expo/vector-icons';
 import React, { useRef, useState } from 'react';
 import {
-    ActivityIndicator,
-    Alert,
-    Animated,
-    Dimensions,
-    KeyboardAvoidingView,
-    Modal,
-    PanResponder,
-    Platform,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
+  ActivityIndicator,
+  Alert,
+  Animated,
+  Dimensions,
+  KeyboardAvoidingView,
+  Modal,
+  PanResponder,
+  Platform,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from 'react-native';
 
 const { height } = Dimensions.get('window');
@@ -25,10 +26,32 @@ interface Props {
 }
 
 const ForgotPassword = ({ onClose, visible }: Props) => {
+  const { isDark } = useAppTheme();
   const [email, setEmail] = useState('');
   const [loading, setLoading] = useState(false);
   const [emailSent, setEmailSent] = useState(false);
   const translateY = useRef(new Animated.Value(MODAL_HEIGHT)).current;
+
+  // Theme-aware colors
+  const modalBg = isDark ? 'bg-black' : 'bg-white';
+  const overlayBg = isDark ? 'bg-black/50' : 'bg-black/30';
+  const dragHandleBg = isDark ? 'bg-neutral-700' : 'bg-gray-300';
+  const closeButtonBg = isDark ? 'bg-neutral-800' : 'bg-gray-200';
+  const closeIconColor = isDark ? '#a1a1aa' : '#6b7280';
+  const iconBg = isDark ? 'bg-blue-500/10' : 'bg-blue-100';
+  const iconColor = '#3b82f6';
+  const textPrimary = isDark ? 'text-white' : 'text-black';
+  const textSecondary = isDark ? 'text-neutral-500' : 'text-gray-500';
+  const textTertiary = isDark ? 'text-neutral-600' : 'text-gray-400';
+  const inputBg = isDark ? 'bg-neutral-900' : 'bg-gray-100';
+  const inputBorder = isDark ? 'border-neutral-800' : 'border-gray-200';
+  const inputText = isDark ? 'text-white' : 'text-black';
+  const placeholderColor = isDark ? '#737373' : '#9ca3af';
+  const buttonBg = isDark ? 'bg-blue-600' : 'bg-blue-500';
+  const buttonDisabled = isDark ? 'bg-blue-600/50' : 'bg-blue-500/50';
+  const successIconBg = isDark ? 'bg-green-500/10' : 'bg-green-100';
+  const successIconColor = '#10b981';
+  const linkText = isDark ? 'text-blue-500' : 'text-blue-600';
 
   const panResponder = useRef(
     PanResponder.create({
@@ -116,7 +139,7 @@ const ForgotPassword = ({ onClose, visible }: Props) => {
     >
       {/* Overlay */}
       <TouchableOpacity
-        className="flex-1 bg-black/50"
+        className={`flex-1 ${overlayBg}`}
         activeOpacity={1}
         onPress={handleClose}
       />
@@ -131,19 +154,19 @@ const ForgotPassword = ({ onClose, visible }: Props) => {
           left: 0,
           right: 0,
         }}
-        className="bg-black rounded-t-3xl"
+        className={`rounded-t-3xl ${modalBg}`}
       >
         {/* Drag Handle */}
         <View {...panResponder.panHandlers} className="items-center pt-3 pb-2">
-          <View className="w-12 h-1.5 bg-neutral-700 rounded-full" />
+          <View className={`w-12 h-1.5 ${dragHandleBg} rounded-full`} />
         </View>
 
         {/* Close Button */}
         <TouchableOpacity
           onPress={handleClose}
-          className="absolute top-4 right-5 z-10 w-10 h-10 rounded-full bg-neutral-800 items-center justify-center"
+          className={`absolute top-4 right-5 z-10 w-10 h-10 rounded-full ${closeButtonBg} items-center justify-center`}
         >
-          <Ionicons name="close" size={20} color="#a1a1aa" />
+          <Ionicons name="close" size={20} color={closeIconColor} />
         </TouchableOpacity>
 
         <KeyboardAvoidingView
@@ -153,28 +176,28 @@ const ForgotPassword = ({ onClose, visible }: Props) => {
           <View className="flex-1 px-6 pt-6 pb-8">
             {/* Icon */}
             <View className="items-center mb-6">
-              <View className="w-20 h-20 bg-blue-500/10 rounded-full items-center justify-center">
-                <Ionicons name="key-outline" size={32} color="#3b82f6" />
+              <View className={`w-20 h-20 ${iconBg} rounded-full items-center justify-center`}>
+                <Ionicons name="key-outline" size={32} color={iconColor} />
               </View>
             </View>
 
             {/* Title */}
-            <Text className="text-white text-2xl font-bold text-center mb-2">
+            <Text className={`${textPrimary} text-2xl font-bold text-center mb-2`}>
               Reset Password
             </Text>
-            <Text className="text-neutral-500 text-center text-sm mb-8">
+            <Text className={`${textSecondary} text-center text-sm mb-8`}>
               Enter your email address and we'll send you a link to reset your password
             </Text>
 
             {/* Email Input */}
             {!emailSent ? (
               <>
-                <View className="flex-row items-center bg-neutral-900 rounded-xl px-4 border border-neutral-800 mb-4">
+                <View className={`flex-row items-center ${inputBg} rounded-xl px-4 border ${inputBorder} mb-4`}>
                   <Ionicons name="mail-outline" size={20} color="#737373" />
                   <TextInput
-                    className="flex-1 text-white py-4 ml-3 text-base"
+                    className={`flex-1 ${inputText} py-4 ml-3 text-base`}
                     placeholder="Email address"
-                    placeholderTextColor="#737373"
+                    placeholderTextColor={placeholderColor}
                     value={email}
                     onChangeText={setEmail}
                     keyboardType="email-address"
@@ -193,7 +216,7 @@ const ForgotPassword = ({ onClose, visible }: Props) => {
                 <TouchableOpacity
                   onPress={handleResetPassword}
                   disabled={loading}
-                  className={`py-4 rounded-xl mb-4 ${loading ? 'bg-blue-600/50' : 'bg-blue-600'}`}
+                  className={`py-4 rounded-xl mb-4 ${loading ? buttonDisabled : buttonBg}`}
                 >
                   {loading ? (
                     <ActivityIndicator size="small" color="white" />
@@ -206,7 +229,7 @@ const ForgotPassword = ({ onClose, visible }: Props) => {
 
                 {/* Back to Sign In */}
                 <TouchableOpacity onPress={handleClose}>
-                  <Text className="text-neutral-500 text-center text-sm">
+                  <Text className={`${textSecondary} text-center text-sm`}>
                     Back to Sign In
                   </Text>
                 </TouchableOpacity>
@@ -215,15 +238,15 @@ const ForgotPassword = ({ onClose, visible }: Props) => {
               // Success State
               <>
                 <View className="items-center mb-6">
-                  <View className="w-20 h-20 bg-green-500/10 rounded-full items-center justify-center">
-                    <Ionicons name="checkmark-circle" size={40} color="#10b981" />
+                  <View className={`w-20 h-20 ${successIconBg} rounded-full items-center justify-center`}>
+                    <Ionicons name="checkmark-circle" size={40} color={successIconColor} />
                   </View>
                 </View>
 
-                <Text className="text-white text-xl font-semibold text-center mb-2">
+                <Text className={`${textPrimary} text-xl font-semibold text-center mb-2`}>
                   Check your email
                 </Text>
-                <Text className="text-neutral-500 text-center text-sm mb-8">
+                <Text className={`${textSecondary} text-center text-sm mb-8`}>
                   We've sent a password reset link to {email}
                 </Text>
 
@@ -239,7 +262,7 @@ const ForgotPassword = ({ onClose, visible }: Props) => {
 
                 {/* Resend Option */}
                 <TouchableOpacity onPress={() => setEmailSent(false)}>
-                  <Text className="text-blue-500 text-center text-sm">
+                  <Text className={`${linkText} text-center text-sm`}>
                     Wrong email? Edit
                   </Text>
                 </TouchableOpacity>
@@ -247,7 +270,7 @@ const ForgotPassword = ({ onClose, visible }: Props) => {
             )}
 
             {/* Footer Note */}
-            <Text className="text-neutral-600 text-xs text-center mt-8">
+            <Text className={`${textTertiary} text-xs text-center mt-8`}>
               We'll never share your email with anyone else
             </Text>
           </View>

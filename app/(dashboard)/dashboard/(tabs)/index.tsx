@@ -1,5 +1,6 @@
 import { getDocumentStatistics, getRecentUploads, getUserDocuments } from '@/config/firebase/services/dashboard/documents';
 import { useAuth } from '@/context/auth-context';
+import { useAppTheme } from '@/context/theme-context';
 import { fileEvents } from '@/utils/events';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
@@ -7,6 +8,9 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { Animated, Image, RefreshControl, Text, TouchableOpacity, View } from 'react-native';
 
 export default function HomeScreen() {
+  const { user } = useAuth();
+  const { isDark } = useAppTheme();
+  
   const [stats, setStats] = useState({
     totalDocuments: 0,
     starredDocuments: 0,
@@ -18,7 +22,15 @@ export default function HomeScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const scrollY = useRef(new Animated.Value(0)).current;
-  const { user } = useAuth();
+
+  // Theme-aware styles
+  const bgColor = isDark ? 'bg-black' : 'bg-white';
+  const cardBgColor = isDark ? 'bg-neutral-900' : 'bg-gray-100';
+  const borderColor = isDark ? 'border-neutral-800' : 'border-gray-200';
+  const textPrimary = isDark ? 'text-white' : 'text-black';
+  const textSecondary = isDark ? 'text-neutral-400' : 'text-gray-500';
+  const textTertiary = isDark ? 'text-neutral-500' : 'text-gray-400';
+  const skeletonBg = isDark ? 'bg-neutral-800' : 'bg-gray-200';
 
   // Get day index (0 = Monday, 6 = Sunday)
   const getDayIndex = (date: Date): number => {
@@ -28,87 +40,64 @@ export default function HomeScreen() {
 
   // Calculate weekly upload counts
   const calculateWeeklyData = (files: any[]) => {
-  const counts = [0, 0, 0, 0, 0, 0, 0];
-  
-  const today = new Date();
-  const startOfWeek = new Date(today);
-  // Get Monday of current week
-  const dayOfWeek = today.getDay();
-  const daysToMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
-  startOfWeek.setDate(today.getDate() - daysToMonday);
-  startOfWeek.setHours(0, 0, 0, 0);
-  
-  console.log('Start of week (Monday):', startOfWeek.toDateString());
-  console.log('Today:', today.toDateString());
-  
-  files.forEach(file => {
-    if (!file.uploadedAt) {
-      console.log('Missing uploadedAt for:', file.documentName);
-      return;
-    }
+    const counts = [0, 0, 0, 0, 0, 0, 0];
     
-    let uploadDate;
-    if (file.uploadedAt?.toDate) {
-      // Firebase Timestamp
-      uploadDate = file.uploadedAt.toDate();
-    } else if (file.uploadedAt?.seconds) {
-      // Firestore timestamp with seconds
-      uploadDate = new Date(file.uploadedAt.seconds * 1000);
-    } else if (typeof file.uploadedAt === 'string') {
-      // String date
-      uploadDate = new Date(file.uploadedAt);
-    } else if (file.uploadedAt instanceof Date) {
-      // Date object
-      uploadDate = file.uploadedAt;
-    } else {
-      console.log('Unknown uploadedAt format for:', file.documentName, file.uploadedAt);
-      return;
-    }
+    const today = new Date();
+    const startOfWeek = new Date(today);
+    const dayOfWeek = today.getDay();
+    const daysToMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
+    startOfWeek.setDate(today.getDate() - daysToMonday);
+    startOfWeek.setHours(0, 0, 0, 0);
     
-    console.log('File:', file.documentName);
-    console.log('  Upload date:', uploadDate.toDateString());
-    console.log('  Is after start of week?', uploadDate >= startOfWeek);
+    files.forEach(file => {
+      if (!file.uploadedAt) return;
+      
+      let uploadDate;
+      if (file.uploadedAt?.toDate) {
+        uploadDate = file.uploadedAt.toDate();
+      } else if (file.uploadedAt?.seconds) {
+        uploadDate = new Date(file.uploadedAt.seconds * 1000);
+      } else if (typeof file.uploadedAt === 'string') {
+        uploadDate = new Date(file.uploadedAt);
+      } else if (file.uploadedAt instanceof Date) {
+        uploadDate = file.uploadedAt;
+      } else {
+        return;
+      }
+      
+      if (uploadDate >= startOfWeek) {
+        const dayIndex = getDayIndex(uploadDate);
+        counts[dayIndex]++;
+      }
+    });
     
-    if (uploadDate >= startOfWeek) {
-      const dayIndex = getDayIndex(uploadDate);
-      counts[dayIndex]++;
-      console.log('  Added to day:', ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'][dayIndex]);
-    }
-  });
-  
-  console.log('Final weekly counts:', counts);
-  return counts;
-};
+    return counts;
+  };
 
-const fetchDashboardData = useCallback(async () => {
-  if (!user?.uid) return;
-  
-  try {
-    setLoading(true);
+  const fetchDashboardData = useCallback(async () => {
+    if (!user?.uid) return;
     
-    const statistics = await getDocumentStatistics(user.uid);
-    setStats(statistics);
-    
-    const allDocuments = await getUserDocuments(user.uid, { includeTrashed: false });
-    const weeklyCounts = calculateWeeklyData(allDocuments);
-    
-    // Add debug logs
-    console.log('All documents:', allDocuments.length);
-    console.log('Weekly counts:', weeklyCounts);
-    console.log('Weekly counts total:', weeklyCounts.reduce((a, b) => a + b, 0));
-    
-    setWeeklyData(weeklyCounts);
-    
-    const recent = await getRecentUploads(user.uid, 5);
-    setRecentUploads(recent);
-    
-  } catch (error) {
-    console.error('Error fetching dashboard data:', error);
-  } finally {
-    setLoading(false);
-    setRefreshing(false);
-  }
-}, [user?.uid]);
+    try {
+      setLoading(true);
+      
+      const statistics = await getDocumentStatistics(user.uid);
+      setStats(statistics);
+      
+      const allDocuments = await getUserDocuments(user.uid, { includeTrashed: false });
+      const weeklyCounts = calculateWeeklyData(allDocuments);
+      
+      setWeeklyData(weeklyCounts);
+      
+      const recent = await getRecentUploads(user.uid, 5);
+      setRecentUploads(recent);
+      
+    } catch (error) {
+      console.error('Error fetching dashboard data:', error);
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  }, [user?.uid]);
 
   useEffect(() => {
     fetchDashboardData();
@@ -117,7 +106,6 @@ const fetchDashboardData = useCallback(async () => {
   // Listen for upload events to refresh the chart
   useEffect(() => {
     const handleUploadComplete = () => {
-      console.log('Upload detected, refreshing dashboard...');
       fetchDashboardData();
     };
     
@@ -164,18 +152,18 @@ const fetchDashboardData = useCallback(async () => {
     });
   };
 
-  // Skeleton Loader
+  // Skeleton Loader with theme support
   const SkeletonLoader = () => (
-    <View className="pb-20 px-2 pt-2 bg-black">
+    <View className={`pb-20 px-2 pt-2 ${bgColor}`}>
       <View className="flex-row flex-wrap gap-4">
         {[1, 2, 3].map((i) => (
-          <View key={i} className="bg-neutral-800 p-5 rounded-2xl flex-1 min-w-[150px] h-32" />
+          <View key={i} className={`${skeletonBg} p-5 rounded-2xl flex-1 min-w-[150px] h-32`} />
         ))}
       </View>
-      <View className="mt-6 bg-neutral-800 p-5 rounded-2xl h-24" />
+      <View className={`mt-6 ${skeletonBg} p-5 rounded-2xl h-24`} />
       <View className="mt-8">
-        <View className="bg-neutral-800 h-6 w-40 mb-4 rounded" />
-        <View className="bg-neutral-800 p-5 rounded-2xl h-64" />
+        <View className={`${skeletonBg} h-6 w-40 mb-4 rounded`} />
+        <View className={`${skeletonBg} p-5 rounded-2xl h-64`} />
       </View>
     </View>
   );
@@ -188,7 +176,7 @@ const fetchDashboardData = useCallback(async () => {
         [{ nativeEvent: { contentOffset: { y: scrollY } } }],
         { useNativeDriver: true }
       )}
-      className="flex-1 bg-black"
+      className={`flex-1 ${bgColor}`}
       refreshControl={
         <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#3b82f6" />
       }
@@ -196,34 +184,34 @@ const fetchDashboardData = useCallback(async () => {
       {loading && !refreshing ? (
         <SkeletonLoader />
       ) : (
-        <View className="pb-20 px-2 pt-2 bg-black">
+        <View className={`pb-20 px-2 pt-2 ${bgColor}`}>
           {/* Stats Cards Grid */}
           <View className="flex-row flex-wrap gap-4">
-            <View className="bg-neutral-900 p-5 rounded-2xl flex-1 min-w-[150px] border border-neutral-800">
-              <Text className="text-neutral-400 text-sm">Total Studies</Text>
-              <Text className="text-white text-3xl font-bold mt-1">{stats.totalDocuments}</Text>
+            <View className={`${cardBgColor} p-5 rounded-2xl flex-1 min-w-[150px] border ${borderColor}`}>
+              <Text className={`${textSecondary} text-sm`}>Total Studies</Text>
+              <Text className={`${textPrimary} text-3xl font-bold mt-1`}>{stats.totalDocuments}</Text>
               <View className="flex-row items-center mt-2">
                 <Ionicons name="star-outline" size={14} color="#6b7280" />
-                <Text className="text-neutral-500 text-xs ml-1">
+                <Text className={`${textTertiary} text-xs ml-1`}>
                   {stats.starredDocuments} starred
                 </Text>
               </View>
             </View>
 
-            <View className="bg-neutral-900 p-5 rounded-2xl flex-1 min-w-[150px] border border-neutral-800">
-              <Text className="text-neutral-400 text-sm">Storage Used</Text>
-              <Text className="text-white text-3xl font-bold mt-1">{formatFileSize(stats.totalSize)}</Text>
-              <Text className="text-neutral-500 text-xs mt-2">
+            <View className={`${cardBgColor} p-5 rounded-2xl flex-1 min-w-[150px] border ${borderColor}`}>
+              <Text className={`${textSecondary} text-sm`}>Storage Used</Text>
+              <Text className={`${textPrimary} text-3xl font-bold mt-1`}>{formatFileSize(stats.totalSize)}</Text>
+              <Text className={`${textTertiary} text-xs mt-2`}>
                 of 500 MB ({getStoragePercentage().toFixed(1)}%)
               </Text>
             </View>
 
-            <View className="bg-neutral-900 p-5 rounded-2xl flex-1 min-w-[150px] border border-neutral-800">
-              <Text className="text-neutral-400 text-sm">Categories</Text>
-              <Text className="text-white text-3xl font-bold mt-1">
+            <View className={`${cardBgColor} p-5 rounded-2xl flex-1 min-w-[150px] border ${borderColor}`}>
+              <Text className={`${textSecondary} text-sm`}>Categories</Text>
+              <Text className={`${textPrimary} text-3xl font-bold mt-1`}>
                 {Object.keys(stats.categories).length}
               </Text>
-              <Text className="text-neutral-500 text-xs mt-2">
+              <Text className={`${textTertiary} text-xs mt-2`}>
                 document types
               </Text>
             </View>
@@ -232,12 +220,12 @@ const fetchDashboardData = useCallback(async () => {
           {/* Reminder Card */}
           <TouchableOpacity 
             onPress={() => router.push('/(dashboard)/dashboard/(tabs)/reminder')}
-            className="mt-6 bg-neutral-900 p-5 rounded-2xl border border-neutral-800"
+            className={`mt-6 ${cardBgColor} p-5 rounded-2xl border ${borderColor}`}
           >
             <View className="flex-row items-center justify-between">
               <View>
-                <Text className="text-white font-semibold text-lg">Reminder</Text>
-                <Text className="text-neutral-300 mt-1">Upcoming appointments and tasks</Text>
+                <Text className={`${textPrimary} font-semibold text-lg`}>Reminder</Text>
+                <Text className={`${textSecondary} mt-1`}>Upcoming appointments and tasks</Text>
               </View>
               <Ionicons name="chevron-forward" size={20} color="#737373" />
             </View>
@@ -245,10 +233,10 @@ const fetchDashboardData = useCallback(async () => {
 
           {/* Recent Uploads */}
           <View className="mt-8">
-            <Text className="text-white text-xl font-semibold mb-4">Recent Uploads</Text>
+            <Text className={`${textPrimary} text-xl font-semibold mb-4`}>Recent Uploads</Text>
             
-            <View className="bg-neutral-900 p-5 rounded-2xl border border-neutral-800">
-              <Text className="text-white mb-4">Files by Type (This Week)</Text>
+            <View className={`${cardBgColor} p-5 rounded-2xl border ${borderColor}`}>
+              <Text className={`${textPrimary} mb-4`}>Files by Type (This Week)</Text>
               
               {/* Week Days Chart - Dynamic */}
               <View className="flex-row justify-between items-end h-32 mb-6">
@@ -266,18 +254,18 @@ const fetchDashboardData = useCallback(async () => {
                           style={{ height: barHeight }}
                         />
                       </View>
-                      <Text className="text-neutral-500 text-xs mt-2">{day}</Text>
+                      <Text className={`${textTertiary} text-xs mt-2`}>{day}</Text>
                     </View>
                   );
                 })}
               </View>
               
               {/* Summary Stats */}
-              <View className="flex-row justify-between mb-4 pb-2 border-b border-neutral-800">
-                <Text className="text-neutral-500 text-xs">
+              <View className={`flex-row justify-between mb-4 pb-2 border-b ${borderColor}`}>
+                <Text className={`${textTertiary} text-xs`}>
                   Total this week: {weeklyData.reduce((a, b) => a + b, 0)} files
                 </Text>
-                <Text className="text-neutral-500 text-xs">
+                <Text className={`${textTertiary} text-xs`}>
                   Most active: {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'][weeklyData.indexOf(Math.max(...weeklyData))]}
                 </Text>
               </View>
@@ -289,7 +277,7 @@ const fetchDashboardData = useCallback(async () => {
                     <TouchableOpacity
                       key={file.id}
                       onPress={() => handleFilePress(file)}
-                      className="flex-row items-center py-3 border-t border-neutral-800 first:border-t-0"
+                      className={`flex-row items-center py-3 border-t ${borderColor} first:border-t-0`}
                     >
                       {file.cloudinary?.thumbnailUrl ? (
                         <Image 
@@ -303,10 +291,10 @@ const fetchDashboardData = useCallback(async () => {
                         </View>
                       )}
                       <View className="flex-1 ml-3">
-                        <Text className="text-white text-sm font-medium" numberOfLines={1}>
+                        <Text className={`${textPrimary} text-sm font-medium`} numberOfLines={1}>
                           {file.documentName}
                         </Text>
-                        <Text className="text-neutral-500 text-xs">
+                        <Text className={`${textTertiary} text-xs`}>
                           {formatFileSize(file.cloudinary?.bytes || 0)} • {formatDate(file.uploadedAt)}
                         </Text>
                       </View>
@@ -317,8 +305,8 @@ const fetchDashboardData = useCallback(async () => {
               ) : (
                 <View className="items-center py-8 mt-2 border-t border-neutral-800">
                   <Ionicons name="cloud-upload-outline" size={40} color="#4b5563" />
-                  <Text className="text-neutral-400 text-base mt-2">No recent uploads</Text>
-                  <Text className="text-neutral-500 text-sm mt-1">
+                  <Text className={`${textSecondary} text-base mt-2`}>No recent uploads</Text>
+                  <Text className={`${textTertiary} text-sm mt-1`}>
                     Upload your first file to get started
                   </Text>
                 </View>

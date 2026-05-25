@@ -1,6 +1,7 @@
 import FileDetailsModal from "@/components/modal/filedetails-modal";
 import { getUserDocuments, toggleDocumentStarred, trashDocument } from '@/config/firebase/services/dashboard/documents';
 import { useAuth } from '@/context/auth-context';
+import { useAppTheme } from '@/context/theme-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import {
@@ -22,6 +23,9 @@ if (Platform.OS === 'android') {
 }
 
 export default function MyDriveScreen() {
+  const { user } = useAuth();
+  const { isDark } = useAppTheme();
+  
   const [searchQuery, setSearchQuery] = useState('');
   const [filterType, setFilterType] = useState('all');
   const [sortBy, setSortBy] = useState('date');
@@ -36,7 +40,15 @@ export default function MyDriveScreen() {
   const [isUploading, setIsUploading] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const scrollY = useRef(new Animated.Value(0)).current;
-  const { user } = useAuth();
+
+  // Theme-aware colors
+  const bgColor = isDark ? 'bg-black' : 'bg-white';
+  const cardBg = isDark ? 'bg-neutral-900' : 'bg-gray-100';
+  const borderColor = isDark ? 'border-neutral-800' : 'border-gray-200';
+  const textPrimary = isDark ? 'text-white' : 'text-black';
+  const textSecondary = isDark ? 'text-neutral-400' : 'text-gray-500';
+  const textTertiary = isDark ? 'text-neutral-500' : 'text-gray-400';
+  const skeletonBg = isDark ? 'bg-neutral-800' : 'bg-gray-200';
 
   // Filter options based on actual data
   const [filterOptions, setFilterOptions] = useState([
@@ -98,12 +110,6 @@ export default function MyDriveScreen() {
     fetchDocuments(false);
   }, [fetchDocuments]);
 
-  // Function to refresh after any data change (upload, delete, restore)
-  const refreshAfterDataChange = useCallback(() => {
-    setIsUploading(true);
-    fetchDocuments(false);
-  }, [fetchDocuments]);
-
   const handleStarToggle = async (fileId: string, currentStarred: boolean) => {
     try {
       await toggleDocumentStarred(fileId, !currentStarred);
@@ -149,7 +155,6 @@ export default function MyDriveScreen() {
   };
 
   const handleShare = async (file: any) => {
-    // Implement share functionality
     console.log('Share:', file.id);
     setDropdownVisible(false);
   };
@@ -211,35 +216,35 @@ export default function MyDriveScreen() {
       return dateB.getTime() - dateA.getTime();
     });
 
-  // Skeleton Loader Component
+  // Skeleton Loader Component with theme support
   const SkeletonLoader = () => (
     <View className="px-2 pt-2">
-      <View className="bg-neutral-800 rounded-xl h-12 mb-4" />
+      <View className={`${skeletonBg} rounded-xl h-12 mb-4`} />
       <View className="flex-row gap-2 mb-5">
         {[1, 2, 3].map((i) => (
-          <View key={i} className="bg-neutral-800 rounded-full h-10 w-20" />
+          <View key={i} className={`${skeletonBg} rounded-full h-10 w-20`} />
         ))}
       </View>
       <View className="flex-row justify-between mb-4">
-        <View className="bg-neutral-800 rounded-lg h-8 w-20" />
+        <View className={`${skeletonBg} rounded-lg h-8 w-20`} />
         <View className="flex-row gap-2">
           {[1, 2, 3].map((i) => (
-            <View key={i} className="bg-neutral-800 rounded-lg h-8 w-16" />
+            <View key={i} className={`${skeletonBg} rounded-lg h-8 w-16`} />
           ))}
         </View>
       </View>
       <View className="flex-row justify-between mb-4 pb-2">
-        <View className="bg-neutral-800 rounded h-5 w-32" />
-        <View className="bg-neutral-800 rounded h-5 w-24" />
+        <View className={`${skeletonBg} rounded h-5 w-32`} />
+        <View className={`${skeletonBg} rounded h-5 w-24`} />
       </View>
       {[1, 2, 3].map((i) => (
-        <View key={i} className="flex-row items-center p-4 bg-neutral-800/50 rounded-xl mb-3">
-          <View className="w-12 h-12 bg-neutral-700 rounded-xl" />
+        <View key={i} className={`flex-row items-center p-4 ${skeletonBg}/50 rounded-xl mb-3`}>
+          <View className={`w-12 h-12 ${skeletonBg} rounded-xl`} />
           <View className="flex-1 ml-3">
-            <View className="bg-neutral-700 rounded h-5 w-40 mb-2" />
-            <View className="bg-neutral-700 rounded h-3 w-32" />
+            <View className={`${skeletonBg} rounded h-5 w-40 mb-2`} />
+            <View className={`${skeletonBg} rounded h-3 w-32`} />
           </View>
-          <View className="w-8 h-8 bg-neutral-700 rounded-full" />
+          <View className={`w-8 h-8 ${skeletonBg} rounded-full`} />
         </View>
       ))}
     </View>
@@ -252,7 +257,7 @@ export default function MyDriveScreen() {
       <View className="mb-3">
         <TouchableOpacity 
           onPress={() => handleFilePress(file)}
-          className="flex-row items-center p-4 bg-neutral-900 rounded-xl border border-neutral-800"
+          className={`flex-row items-center p-4 ${cardBg} rounded-xl border ${borderColor}`}
         >
           {file.cloudinary?.thumbnailUrl ? (
             <Image 
@@ -267,21 +272,21 @@ export default function MyDriveScreen() {
           )}
           
           <View className="flex-1 ml-3">
-            <Text className="text-white font-medium text-base" numberOfLines={1}>
+            <Text className={`${textPrimary} font-medium text-base`} numberOfLines={1}>
               {file.documentName}
             </Text>
             <View className="flex-row items-center mt-1 flex-wrap">
-              <Text className="text-neutral-500 text-xs">
+              <Text className={`${textTertiary} text-xs`}>
                 {formatFileSize(file.cloudinary?.bytes || 0)}
               </Text>
               <Text className="text-neutral-600 text-xs mx-1">•</Text>
-              <Text className="text-neutral-500 text-xs">
+              <Text className={`${textTertiary} text-xs`}>
                 {formatDate(file.uploadedAt)}
               </Text>
               {file.categoryLabel && (
                 <>
                   <Text className="text-neutral-600 text-xs mx-1">•</Text>
-                  <Text className="text-neutral-500 text-xs">
+                  <Text className={`${textTertiary} text-xs`}>
                     {file.categoryLabel}
                   </Text>
                 </>
@@ -344,17 +349,17 @@ export default function MyDriveScreen() {
           [{ nativeEvent: { contentOffset: { y: scrollY } } }],
           { useNativeDriver: true }
         )}
-        className="flex-1 bg-black"
+        className={`flex-1 ${bgColor}`}
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#3b82f6" />
         }
       >
-        <View className="pb-20 bg-black px-2 pt-2">
+        <View className={`pb-20 ${bgColor} px-2 pt-2`}>
           {/* Search Bar */}
-          <View className="flex-row items-center bg-neutral-900 rounded-xl px-4 py-2 mb-4 border border-neutral-800">
+          <View className={`flex-row items-center ${cardBg} rounded-xl px-4 py-2 mb-4 border ${borderColor}`}>
             <Ionicons name="search-outline" size={20} color="#737373" />
             <TextInput
-              className="flex-1 text-white ml-2 py-2"
+              className={`flex-1 ${textPrimary} ml-2 py-2`}
               placeholder="Search files..."
               placeholderTextColor="#737373"
               value={searchQuery}
@@ -385,7 +390,7 @@ export default function MyDriveScreen() {
                       key={option.id}
                       onPress={() => setFilterType(option.id)}
                       className={`flex-row items-center px-4 py-2 rounded-full ${
-                        filterType === option.id ? 'bg-blue-500' : 'bg-neutral-900 border border-neutral-800'
+                        filterType === option.id ? 'bg-blue-500' : `${cardBg} border ${borderColor}`
                       }`}
                     >
                       <Ionicons 
@@ -394,7 +399,7 @@ export default function MyDriveScreen() {
                         color={filterType === option.id ? 'white' : '#737373'} 
                       />
                       <Text className={`ml-2 font-medium ${
-                        filterType === option.id ? 'text-white' : 'text-neutral-400'
+                        filterType === option.id ? 'text-white' : textSecondary
                       }`}>
                         {option.label}
                       </Text>
@@ -405,14 +410,14 @@ export default function MyDriveScreen() {
 
               {/* Sort Options */}
               <View className="flex-row items-center justify-between mb-4">
-                <Text className="text-neutral-400 text-sm">Sort by:</Text>
+                <Text className={`${textSecondary} text-sm`}>Sort by:</Text>
                 <View className="flex-row gap-2">
                   {sortOptions.map((option) => (
                     <TouchableOpacity
                       key={option.id}
                       onPress={() => setSortBy(option.id)}
                       className={`flex-row items-center px-3 py-1.5 rounded-lg ${
-                        sortBy === option.id ? 'bg-blue-500/20' : 'bg-neutral-900'
+                        sortBy === option.id ? 'bg-blue-500/20' : cardBg
                       }`}
                     >
                       <Ionicons 
@@ -421,7 +426,7 @@ export default function MyDriveScreen() {
                         color={sortBy === option.id ? '#3b82f6' : '#737373'} 
                       />
                       <Text className={`ml-1 text-xs ${
-                        sortBy === option.id ? 'text-blue-500' : 'text-neutral-400'
+                        sortBy === option.id ? 'text-blue-500' : textSecondary
                       }`}>
                         {option.label}
                       </Text>
@@ -431,11 +436,11 @@ export default function MyDriveScreen() {
               </View>
 
               {/* Stats Bar */}
-              <View className="flex-row justify-between items-center mb-4 pb-2 border-b border-neutral-800">
-                <Text className="text-neutral-400 text-sm">
+              <View className={`flex-row justify-between items-center mb-4 pb-2 border-b ${borderColor}`}>
+                <Text className={`${textSecondary} text-sm`}>
                   {filteredFiles.length} {filteredFiles.length === 1 ? 'file' : 'files'}
                 </Text>
-                <Text className="text-neutral-500 text-xs">
+                <Text className={`${textTertiary} text-xs`}>
                   Storage: {formatFileSize(totalStorageUsed)}
                 </Text>
               </View>
@@ -448,8 +453,8 @@ export default function MyDriveScreen() {
               ) : (
                 <View className="items-center py-12">
                   <Ionicons name="folder-open-outline" size={64} color="#4b5563" />
-                  <Text className="text-neutral-400 text-lg font-medium mt-4">No files found</Text>
-                  <Text className="text-neutral-500 text-center mt-2">
+                  <Text className={`${textSecondary} text-lg font-medium mt-4`}>No files found</Text>
+                  <Text className={`${textTertiary} text-center mt-2`}>
                     {searchQuery ? 'Try adjusting your search' : 'Upload your first file to get started'}
                   </Text>
                 </View>

@@ -6,6 +6,7 @@ import {
   markReminderNotified,
 } from "@/config/firebase/services/reminder/service";
 import { useAuth } from "@/context/auth-context";
+import { useAppTheme } from "@/context/theme-context";
 import { Ionicons, MaterialIcons } from "@expo/vector-icons";
 import AntDesign from "@expo/vector-icons/AntDesign";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
@@ -47,6 +48,9 @@ interface Reminder {
 }
 
 export default function TabsLayout() {
+  const { user } = useAuth();
+  const { isDark } = useAppTheme();
+  
   const [isSidebarVisible, setIsSidebarVisible] = useState(false);
   const [isBotbarVisible, setIsBotbarVisible] = useState(false)
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
@@ -54,10 +58,18 @@ export default function TabsLayout() {
   const [darkMode, setDarkMode] = useState(true);
   const [unreadCount, setUnreadCount] = useState(0);
   const pathname = usePathname();
-  const { user } = useAuth();
   const [activeReminder, setActiveReminder] = useState<Reminder | null>(null);
   const notifAnim = useRef(new Animated.Value(-100)).current;
   const badgeAnim = useRef(new Animated.Value(0)).current;
+
+  // Theme-aware colors
+  const bgColor = isDark ? 'bg-black' : 'bg-white';
+  const headerBg = isDark ? 'bg-black' : 'bg-white';
+  const cardBg = isDark ? 'bg-neutral-900' : 'bg-gray-100';
+  const borderColor = isDark ? 'border-neutral-800' : 'border-gray-200';
+  const textPrimary = isDark ? 'text-white' : 'text-black';
+  const textSecondary = isDark ? 'text-neutral-400' : 'text-gray-500';
+  const tabBarBg = isDark ? '#0a0a0a' : '#ffffff';
 
   // Load unread count from storage
   const loadUnreadCount = useCallback(async () => {
@@ -68,7 +80,6 @@ export default function TabsLayout() {
         const unread = notifications.filter((n: any) => !n.read).length;
         setUnreadCount(unread);
         
-        // Animate badge if new notifications
         if (unread > 0) {
           Animated.sequence([
             Animated.timing(badgeAnim, {
@@ -92,7 +103,6 @@ export default function TabsLayout() {
   // Reset unread count when notification screen is viewed
   useFocusEffect(
     useCallback(() => {
-      // Check if we're on the notification screen
       if (pathname.includes('notification')) {
         const resetUnreadCount = async () => {
           try {
@@ -130,7 +140,6 @@ export default function TabsLayout() {
       const newUnreadCount = updated.filter((n: any) => !n.read).length;
       setUnreadCount(newUnreadCount);
       
-      // Animate badge
       Animated.sequence([
         Animated.timing(badgeAnim, {
           toValue: 1.2,
@@ -152,7 +161,6 @@ export default function TabsLayout() {
     loadUnreadCount();
   }, []);
 
-  // Dismiss active reminder animation
   const dismissReminder = useCallback(() => {
     Animated.timing(notifAnim, {
       toValue: -100,
@@ -192,7 +200,6 @@ export default function TabsLayout() {
           Vibration.vibrate(300);
           await markReminderNotified(due.id);
           
-          // Add to in-app notifications
           await addNotification({
             title: due.title,
             message: `Reminder: ${due.title} with Dr. ${due.doctor}`,
@@ -229,9 +236,11 @@ export default function TabsLayout() {
   const closeSidebar = useCallback(() => {
     setIsSidebarVisible(false);
   }, []);
- const closeBotBar = useCallback(() => {
-     setIsBotbarVisible(false)
- },[])
+  
+  const closeBotBar = useCallback(() => {
+    setIsBotbarVisible(false)
+  }, []);
+  
   const handleNavigate = useCallback((route: string) => {
     router.push(route as any);
   }, []);
@@ -247,19 +256,19 @@ export default function TabsLayout() {
   const currentTab = getTabName();
 
   return (
-    <View className="flex-1 bg-neutral-950">
+    <View className={`flex-1 ${bgColor}`}>
       {/* Reminder Popup Notification */}
       {activeReminder && (
         <Animated.View
           style={{
             transform: [{ translateY: notifAnim }],
           }}
-          className="absolute top-14 left-4 right-4 z-50 bg-neutral-900 border border-blue-500 p-4 rounded-2xl shadow-lg"
+          className={`absolute top-14 left-4 right-4 z-50 ${cardBg} border border-blue-500 p-4 rounded-2xl shadow-lg`}
         >
           <View className="flex-row items-center justify-between">
             <View className="flex-row items-center">
               <Ionicons name="alarm" size={20} color="#3b82f6" />
-              <Text className="text-white ml-2 font-semibold text-sm">
+              <Text className={`${textPrimary} ml-2 font-semibold text-sm`}>
                 Reminder Alert
               </Text>
             </View>
@@ -268,17 +277,17 @@ export default function TabsLayout() {
             </TouchableOpacity>
           </View>
           <View className="mt-3">
-            <Text className="text-white text-base font-semibold">
+            <Text className={`${textPrimary} text-base font-semibold`}>
               {activeReminder.title}
             </Text>
-            <Text className="text-neutral-400 text-sm mt-1">
+            <Text className={`${textSecondary} text-sm mt-1`}>
               Dr. {activeReminder.doctor}
             </Text>
-            <Text className="text-neutral-500 text-xs mt-2">
+            <Text className={`${textSecondary} text-xs mt-2`}>
               {activeReminder.appointmentDate?.toDate?.().toLocaleString()}
             </Text>
             {activeReminder.notes && (
-              <Text className="text-neutral-400 text-xs mt-2">
+              <Text className={`${textSecondary} text-xs mt-2`}>
                 {activeReminder.notes}
               </Text>
             )}
@@ -292,21 +301,21 @@ export default function TabsLayout() {
         </Animated.View>
       )}
 
-      <StatusBar barStyle="light-content" />
+      <StatusBar barStyle={isDark ? "light-content" : "dark-content"} />
 
       {/* Main Content */}
       <View className="flex-1 relative">
         {/* Header */}
-        <SafeAreaView edges={["top", "left", "right"]} className="bg-black">
+        <SafeAreaView edges={["top", "left", "right"]} className={headerBg}>
           <View className="flex-row items-center justify-between px-4 pb-2">
             <TouchableOpacity
               onPress={() => setIsSidebarVisible(true)}
               className="w-10 h-10 items-center justify-center"
             >
-              <AntDesign name="align-left" size={20} color="white" />
+              <AntDesign name="align-left" size={20} color={isDark ? "white" : "black"} />
             </TouchableOpacity>
 
-            <Text className="text-white text-lg font-semibold">
+            <Text className={`${textPrimary} text-lg font-semibold`}>
               {currentTab}
             </Text>
             
@@ -317,7 +326,7 @@ export default function TabsLayout() {
                 }}
                 className="w-10 h-10 items-center justify-center relative"
               >
-                <MaterialIcons name="notifications" size={24} color="white" />
+                <MaterialIcons name="notifications" size={24} color={isDark ? "white" : "black"} />
                 {unreadCount > 0 && (
                   <Animated.View 
                     style={{
@@ -341,20 +350,17 @@ export default function TabsLayout() {
                 )}
               </TouchableOpacity>
             ) : currentTab === 'MediTalk' ? (
-            <TouchableOpacity
+              <TouchableOpacity
                 onPress={() => {
-                   setIsBotbarVisible(true)
+                  setIsBotbarVisible(true)
                 }}
                 className="w-10 h-10 items-center justify-center relative"
               >
-                <Ionicons name="chatbox" size={20} color="white" />
+                <Ionicons name="chatbox" size={20} color={isDark ? "white" : "black"} />
               </TouchableOpacity>
-            
-            ): (
+            ) : (
               <View className="w-10 h-10" />
-            )
-            
-            }
+            )}
           </View>
         </SafeAreaView>
 
@@ -365,7 +371,7 @@ export default function TabsLayout() {
               tabBarActiveTintColor: "#3b82f6",
               tabBarInactiveTintColor: "#525252",
               tabBarStyle: {
-                backgroundColor: "#0a0a0a",
+                backgroundColor: tabBarBg,
                 borderTopWidth: 1,
                 elevation: 0,
                 shadowOpacity: 0,
@@ -374,7 +380,7 @@ export default function TabsLayout() {
                 paddingTop: 10,
                 paddingLeft: 10,
                 paddingRight: 10,
-                borderTopColor: "#262626",
+                borderTopColor: isDark ? "#262626" : "#e5e5e5",
               },
               tabBarItemStyle: {
                 gap: 0,
@@ -465,21 +471,23 @@ export default function TabsLayout() {
 
         {/* Upload button */}
         {["Dashboard", "My Drive"].includes(currentTab) && (
-         Platform.OS === 'ios' ? (
-           <TouchableOpacity
-            onPress={openUploadModal}
-            className="absolute bg-blue-600 bottom-28 right-6 rounded-full flex items-center justify-center p-4 z-30 shadow-lg"
-            style={{ elevation: 5 }}
-          >
-            <Ionicons color={"white"} size={24} name="cloud-upload" />
-          </TouchableOpacity>
-         ) : ( <TouchableOpacity
-            onPress={openUploadModal}
-            className="absolute bg-blue-600 bottom-36 right-6 rounded-full flex items-center justify-center p-4 z-30 shadow-lg"
-            style={{ elevation: 5 }}
-          >
-            <Ionicons color={"white"} size={24} name="cloud-upload" />
-          </TouchableOpacity>)
+          Platform.OS === 'ios' ? (
+            <TouchableOpacity
+              onPress={openUploadModal}
+              className="absolute bg-blue-600 bottom-28 right-6 rounded-full flex items-center justify-center p-4 z-30 shadow-lg"
+              style={{ elevation: 5 }}
+            >
+              <Ionicons color={"white"} size={24} name="cloud-upload" />
+            </TouchableOpacity>
+          ) : (
+            <TouchableOpacity
+              onPress={openUploadModal}
+              className="absolute bg-blue-600 bottom-36 right-6 rounded-full flex items-center justify-center p-4 z-30 shadow-lg"
+              style={{ elevation: 5 }}
+            >
+              <Ionicons color={"white"} size={24} name="cloud-upload" />
+            </TouchableOpacity>
+          )
         )}
 
         {/* Upload Modal */}
@@ -489,11 +497,13 @@ export default function TabsLayout() {
           onUploadSuccess={handleUpload}
         />
       </View>
+      
       {/* Chatbot sidebar */}
       <BotSidebar
         isVisible={isBotbarVisible}
         onClose={closeBotBar}
       />
+      
       {/* Reusable Sidebar */}
       <Sidebar
         isVisible={isSidebarVisible}

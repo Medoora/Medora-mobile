@@ -1,5 +1,6 @@
 import ChatMessage from '@/components/bot/message/chat-message';
 import { useAuth } from '@/context/auth-context';
+import { useAppTheme } from '@/context/theme-context';
 import { useChatHistory } from '@/hooks/meditalk/use-chathistory';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -21,17 +22,27 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 export default function HealthBotScreen() {
   const { user } = useAuth();
+  const { isDark } = useAppTheme();
   const insets = useSafeAreaInsets();
   const scrollViewRef = useRef<ScrollView>(null);
   const [isSending, setIsSending] = useState(false);
 
-  const { saveConversation, loadRecentMessages, loadHistory } = useChatHistory();
+  const { saveConversation, loadHistory } = useChatHistory();
 
   const [messages, setMessages] = useState<any[]>([]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [streamingMessageId, setStreamingMessageId] = useState<string | null>(null);
   const pulseAnim = useRef(new Animated.Value(1)).current;
+
+  // Theme-aware colors
+  const bgColor = isDark ? 'bg-black' : 'bg-white';
+  const inputBg = isDark ? '#191919' : '#f0f0f0';
+  const inputTextColor = isDark ? 'white' : 'black';
+  const sendButtonBg = input.trim() && !isLoading ? 'white' : (isDark ? '#2a2a2a' : '#e0e0e0');
+  const sendButtonColor = input.trim() && !isLoading ? 'black' : '#666';
+  const placeholderColor = isDark ? '#666' : '#999';
+  const borderColor = isDark ? '#1f1f1f' : '#e5e5e5';
 
   // Pulse animation for loading dots
   useEffect(() => {
@@ -168,7 +179,6 @@ export default function HealthBotScreen() {
     const assistantId = (Date.now() + 1).toString();
     setStreamingMessageId(assistantId);
     
-    // Add placeholder message for streaming
     setMessages(prev => [
       ...prev,
       {
@@ -202,7 +212,6 @@ export default function HealthBotScreen() {
       const data = await response.json();
       const assistantText = data.text || 'No response';
 
-      // Update the streaming message with full content
       setMessages(prev =>
         prev.map(msg =>
           msg.id === assistantId
@@ -233,10 +242,10 @@ export default function HealthBotScreen() {
     }
   }, [input, user, messages, isSending]);
 
-  // Loading dots component
+  // Loading dots component with theme support
   const LoadingDots = () => (
     <View className="flex-row justify-start mb-4">
-      <View className="flex-row items-center gap-1 bg-neutral-800/50 rounded-full px-4 py-2">
+      <View className={`flex-row items-center gap-1 ${isDark ? 'bg-neutral-800/50' : 'bg-gray-200'} rounded-full px-4 py-2`}>
         <Animated.View
           style={{
             width: 8,
@@ -273,7 +282,7 @@ export default function HealthBotScreen() {
   return (
     <KeyboardAvoidingView
       behavior={Platform.OS === 'ios' ? 'padding' : "height"}
-      style={{ flex: 1, backgroundColor: 'black' }}
+      style={{ flex: 1, backgroundColor: isDark ? 'black' : 'white' }}
       keyboardVerticalOffset={90}
     >
       <ScrollView
@@ -294,8 +303,9 @@ export default function HealthBotScreen() {
         {isLoading && !streamingMessageId && <LoadingDots />}
       </ScrollView>
 
+      {/* Gradient overlays - adjust colors based on theme */}
       <LinearGradient
-        colors={['black', 'transparent']}
+        colors={isDark ? ['black', 'transparent'] : ['white', 'transparent']}
         style={{
           position: 'absolute',
           top: 0,
@@ -306,7 +316,7 @@ export default function HealthBotScreen() {
         }}
       />
       <LinearGradient
-        colors={['transparent', 'black']}
+        colors={isDark ? ['transparent', 'black'] : ['transparent', 'white']}
         style={{
           position: 'absolute',
           bottom: 70,
@@ -321,8 +331,8 @@ export default function HealthBotScreen() {
       <View
         style={{
           padding: 12,
-          borderTopColor: '#1f1f1f',
-          backgroundColor: 'black',
+          borderTopColor: borderColor,
+          backgroundColor: isDark ? 'black' : 'white',
           paddingBottom: 0 || 12,
         }}
       >
@@ -330,7 +340,7 @@ export default function HealthBotScreen() {
           style={{
             flexDirection: 'row',
             alignItems: 'center',
-            backgroundColor: '#191919',
+            backgroundColor: inputBg,
             borderRadius: 30,
             paddingHorizontal: 16,
             paddingVertical: 6,
@@ -340,11 +350,11 @@ export default function HealthBotScreen() {
             value={input}
             onChangeText={setInput}
             placeholder={user ? "Message Meditalk..." : "Login required"}
-            placeholderTextColor="#666"
+            placeholderTextColor={placeholderColor}
             multiline
             style={{
               flex: 1,
-              color: 'white',
+              color: inputTextColor,
               paddingVertical: 10,
               maxHeight: 100,
               fontSize: 16,
@@ -360,13 +370,13 @@ export default function HealthBotScreen() {
               borderRadius: 16,
               alignItems: 'center',
               justifyContent: 'center',
-              backgroundColor: input.trim() && !isLoading ? 'white' : '#2a2a2a',
+              backgroundColor: sendButtonBg,
             }}
           >
             <Ionicons
               name="arrow-up"
               size={16}
-              color={input.trim() && !isLoading ? 'black' : '#666'}
+              color={sendButtonColor}
             />
           </TouchableOpacity>
         </View>

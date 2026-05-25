@@ -1,3 +1,4 @@
+import { useAppTheme } from '@/context/theme-context';
 import { Ionicons } from '@expo/vector-icons';
 import React, { useEffect, useRef, useState } from 'react';
 import {
@@ -29,7 +30,7 @@ interface BotSidebarProps {
   isVisible: boolean;
   onClose: () => void;
   conversations?: Conversation[];
-  currentConversationId?: string | null; // Change this line
+  currentConversationId?: string | null;
   onSelectConversation?: (conversation: Conversation) => void;
   onNewConversation?: () => void;
   onDeleteConversation?: (id: string) => void;
@@ -46,9 +47,25 @@ export default function BotSidebar({
   onDeleteConversation,
   onRenameConversation,
 }: BotSidebarProps) {
+  const { isDark } = useAppTheme();
   const slideAnim = useRef(new Animated.Value(SIDEBAR_WIDTH)).current;
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editingTitle, setEditingTitle] = useState('');
+
+  // Theme-aware colors
+  const bgColor = isDark ? '#0a0a0a' : '#f5f5f5';
+  const borderColor = isDark ? 'border-neutral-800' : 'border-gray-200';
+  const headerBorder = isDark ? 'border-neutral-800' : 'border-gray-200';
+  const textPrimary = isDark ? 'text-white' : 'text-black';
+  const textSecondary = isDark ? 'text-neutral-500' : 'text-gray-500';
+  const textTertiary = isDark ? 'text-neutral-600' : 'text-gray-400';
+  const iconColor = isDark ? '#a1a1aa' : '#6b7280';
+  const buttonBg = isDark ? 'bg-neutral-800' : 'bg-gray-200';
+  const activeBg = isDark ? 'bg-neutral-800' : 'bg-gray-300';
+  const editBg = isDark ? 'bg-neutral-700' : 'bg-gray-300';
+  const emptyIconBg = isDark ? 'bg-neutral-800' : 'bg-gray-200';
+  const emptyIconColor = isDark ? '#4b5563' : '#9ca3af';
+  const overlayBg = isDark ? 'bg-black/50' : 'bg-black/30';
 
   useEffect(() => {
     if (isVisible) {
@@ -95,7 +112,6 @@ export default function BotSidebar({
           style: 'destructive',
           onPress: () => {
             onDeleteConversation?.(id);
-            // If the deleted conversation is the current one, it will be handled by parent
           },
         },
       ]
@@ -121,7 +137,7 @@ export default function BotSidebar({
       onRequestClose={handleClose}
       statusBarTranslucent={true}
     >
-      <View className="flex-1 bg-black/50">
+      <View className={`flex-1 ${overlayBg}`}>
         <TouchableOpacity className="flex-1" activeOpacity={1} onPress={handleClose} />
         
         <Animated.View
@@ -132,27 +148,27 @@ export default function BotSidebar({
             right: 0,
             top: 0,
             bottom: 0,
-            backgroundColor: '#0a0a0a',
+            backgroundColor: bgColor,
             borderLeftWidth: 1,
-            borderLeftColor: '#262626',
+            borderLeftColor: isDark ? '#262626' : '#e5e5e5',
           }}
         >
           <SafeAreaView className="flex-1">
-            {/* Header - Fixed with stable positioning */}
-            <View className="px-4 pt-4 pb-3 border-b border-neutral-800">
+            {/* Header */}
+            <View className={`px-4 pt-4 pb-3 border-b ${headerBorder}`}>
               <View className="flex-row justify-between items-center">
                 <View className='flex-row items-center'>
                   <Image
                     source={require("@/assets/logo/meditalk.png")}
                     className='w-10 h-10'
                   />
-                  <Text className="text-white text-lg font-semibold ml-1">Meditalk</Text> 
+                  <Text className={`text-lg font-semibold ml-1 ${textPrimary}`}>Meditalk</Text> 
                 </View>
                 <TouchableOpacity 
                   onPress={handleClose} 
-                  className="w-8 h-8 items-center justify-center rounded-full bg-neutral-800"
+                  className={`w-8 h-8 items-center justify-center rounded-full ${buttonBg}`}
                 >
-                  <Ionicons name="close" size={18} color="#a1a1aa" />
+                  <Ionicons name="close" size={18} color={iconColor} />
                 </TouchableOpacity>
               </View>
             </View>
@@ -183,7 +199,7 @@ export default function BotSidebar({
                     handleClose();
                   }}
                   className={`p-3 rounded-xl mb-1 ${
-                    currentConversationId === conv.id ? 'bg-neutral-800' : 'active:bg-neutral-800/50'
+                    currentConversationId === conv.id ? activeBg : ''
                   }`}
                 >
                   <View className="flex-row items-center justify-between">
@@ -195,14 +211,14 @@ export default function BotSidebar({
                           onBlur={() => handleRename(conv.id)}
                           onSubmitEditing={() => handleRename(conv.id)}
                           autoFocus
-                          className="text-white text-sm bg-neutral-700 rounded-lg px-2 py-1"
+                          className={`text-sm ${editBg} rounded-lg px-2 py-1 ${textPrimary}`}
                         />
                       ) : (
-                        <Text className="text-white text-sm font-medium" numberOfLines={1}>
+                        <Text className={`text-sm font-medium ${textPrimary}`} numberOfLines={1}>
                           {conv.title}
                         </Text>
                       )}
-                      <Text className="text-neutral-500 text-xs mt-1">
+                      <Text className={`${textSecondary} text-xs mt-1`}>
                         {formatDate(conv.updatedAt)}
                       </Text>
                     </View>
@@ -213,13 +229,13 @@ export default function BotSidebar({
                           setEditingId(conv.id);
                           setEditingTitle(conv.title);
                         }}
-                        className="p-1.5 rounded-full active:bg-neutral-700"
+                        className="p-1.5 rounded-full active:opacity-70"
                       >
-                        <Ionicons name="pencil-outline" size={14} color="#737373" />
+                        <Ionicons name="pencil-outline" size={14} color={iconColor} />
                       </TouchableOpacity>
                       <TouchableOpacity
                         onPress={() => handleDelete(conv.id, conv.title)}
-                        className="p-1.5 rounded-full active:bg-neutral-700"
+                        className="p-1.5 rounded-full active:opacity-70"
                       >
                         <Ionicons name="trash-outline" size={14} color="#ef4444" />
                       </TouchableOpacity>
@@ -230,13 +246,13 @@ export default function BotSidebar({
               
               {conversations.length === 0 && (
                 <View className="items-center py-12">
-                  <View className="w-16 h-16 bg-neutral-800 rounded-full items-center justify-center mb-3">
-                    <Ionicons name="chatbubbles-outline" size={28} color="#4b5563" />
+                  <View className={`w-16 h-16 ${emptyIconBg} rounded-full items-center justify-center mb-3`}>
+                    <Ionicons name="chatbubbles-outline" size={28} color={emptyIconColor} />
                   </View>
-                  <Text className="text-neutral-500 text-sm text-center">
+                  <Text className={`${textSecondary} text-sm text-center`}>
                     No conversations
                   </Text>
-                  <Text className="text-neutral-600 text-xs text-center mt-1">
+                  <Text className={`${textTertiary} text-xs text-center mt-1`}>
                     Start a new chat to begin
                   </Text>
                 </View>

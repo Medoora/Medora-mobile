@@ -1,6 +1,7 @@
 import { GoogleSignInButton } from '@/components/buttons/google-button';
 import { signUpUser } from '@/config/firebase/services/auth/auth';
 import { useAuth } from '@/context/auth-context';
+import { useAppTheme } from '@/context/theme-context';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Checkbox from 'expo-checkbox';
@@ -11,7 +12,8 @@ import { ActivityIndicator, Alert, Image, KeyboardAvoidingView, Platform, Scroll
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 export default function SignUpScreen() {
-  const {user,hasCompletedOnboarding} = useAuth()
+  const { isDark } = useAppTheme();
+  const { user, hasCompletedOnboarding } = useAuth();
   const [formData, setFormData] = useState({
     fullname: '',
     email: '',
@@ -28,6 +30,23 @@ export default function SignUpScreen() {
     email: '',
     password: ''
   });
+
+  // Theme-aware colors
+  const bgColor = isDark ? 'bg-[#0A0A0A]' : 'bg-white';
+  const textPrimary = isDark ? 'text-white' : 'text-black';
+  const textSecondary = isDark ? 'text-zinc-300' : 'text-gray-600';
+  const textTertiary = isDark ? 'text-zinc-600' : 'text-gray-500';
+  const inputBg = isDark ? 'bg-zinc-900' : 'bg-gray-100';
+  const inputText = isDark ? 'text-zinc-100' : 'text-black';
+  const placeholderColor = isDark ? '#525252' : '#9ca3af';
+  const borderColor = isDark ? 'border-zinc-800' : 'border-gray-200';
+  const dividerBg = isDark ? 'bg-zinc-800' : 'bg-gray-300';
+  const errorBg = isDark ? 'bg-red-500/10' : 'bg-red-50';
+  const errorBorder = isDark ? 'border-red-500/20' : 'border-red-200';
+  const errorText = isDark ? 'text-red-400' : 'text-red-600';
+  const linkText = isDark ? 'text-blue-400' : 'text-blue-600';
+  const checkboxColor = isDark ? '#3B82F6' : '#2563eb';
+  const checkboxInactive = isDark ? '#404040' : '#9ca3af';
 
   const handleInputChange = (field: string, value: string) => {
     setFormData(prev => ({
@@ -66,19 +85,19 @@ export default function SignUpScreen() {
   };
 
   // google buttons 
-   const handleGoogleSuccess = async () => {
-        console.log('User signed in:', user?.email);
-         // Navigate based on onboarding status
-      if (!hasCompletedOnboarding) {
-        router.push('/(onboarding)/onboarding');
-      } else {
-        router.replace('/(dashboard)/dashboard/(tabs)');
-      }
+  const handleGoogleSuccess = async () => {
+    console.log('User signed in:', user?.email);
+    if (!hasCompletedOnboarding) {
+      router.push('/(onboarding)/onboarding');
+    } else {
+      router.replace('/(dashboard)/dashboard/(tabs)');
     }
-     const handleGoogleError = (error: string) => {
-      console.error('Google sign-in error:', error);
-      // Show error in UI or toast notification
-    };
+  };
+
+  const handleGoogleError = (error: string) => {
+    console.error('Google sign-in error:', error);
+  };
+
   const validateForm = (): boolean => {
     setError(null);
     
@@ -124,7 +143,6 @@ export default function SignUpScreen() {
       if (result.success) {
         console.log("✅ Signup successful for:", formData.email);
         
-        // Store user data in AsyncStorage
         if (result.user) {
           await AsyncStorage.setItem('user', JSON.stringify({
             uid: result.user.uid,
@@ -134,7 +152,6 @@ export default function SignUpScreen() {
           }));
         }
         
-        // Show success message
         Alert.alert(
           "Account Created!",
           "Your account has been created successfully. Please check your email for verification.",
@@ -148,7 +165,6 @@ export default function SignUpScreen() {
       } else {
         console.log("❌ Signup failed:", result.error);
         
-        // Handle specific error messages
         if (result.error?.includes('email-already-in-use') || result.error?.includes('Email already registered')) {
           setError("This email is already registered. Please sign in instead.");
         } else if (result.error?.includes('invalid-email')) {
@@ -167,63 +183,13 @@ export default function SignUpScreen() {
     }
   };
 
-/*   const handleGoogleSignUp = async () => {
-    setGoogleLoading(true);
-    setError(null);
-    
-    try {
-      console.log("🔐 Attempting Google Sign-Up");
-      
-      // Check if Google Sign-In is configured
-      if (!process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID) {
-        setError("Google Sign-In is not configured. Please check your environment variables.");
-        setGoogleLoading(false);
-        return;
-      }
-      
-      const result = await loginWithGoogle(null);
-      
-      if (result.success) {
-        console.log("✅ Google Sign-Up successful");
-        
-        // Store user data
-        if (result.user) {
-          await AsyncStorage.setItem('user', JSON.stringify({
-            uid: result.user.uid,
-            email: result.user.email,
-            displayName: result.user.displayName,
-            photoURL: result.user.photoURL,
-            emailVerified: result.user.emailVerified
-          }));
-        }
-        
-        // Navigate based on onboarding status
-        if (result.needsOnboarding) {
-          console.log("📱 Google user needs onboarding");
-          router.replace('/(dashboard)/dashboard/dashboard');
-        } else {
-          console.log("📱 Google user has completed onboarding, going to dashboard");
-          router.replace('/(dashboard)/dashboard/dashboard');
-        }
-      } else {
-        console.log("❌ Google Sign-Up failed:", result.error);
-        setError(result.error || "Google sign up failed. Please try again.");
-      }
-    } catch (error: any) {
-      console.error("Google Sign-Up Error:", error);
-      setError("Google sign up failed. Please try again.");
-    } finally {
-      setGoogleLoading(false);
-    }
-  };
- */
   return (
     <KeyboardAvoidingView 
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       style={{ flex: 1 }}
-      className="flex-1 bg-[#0A0A0A]"
+      className={`flex-1 ${bgColor}`}
     >
-      <StatusBar style="light" />
+      <StatusBar style={isDark ? "light" : "dark"} />
       
       <SafeAreaView className="flex-1">
         <ScrollView 
@@ -244,19 +210,19 @@ export default function SignUpScreen() {
 
             {/* Header */}
             <View className="mb-10">
-              <Text className="text-2xl text-white font-medium tracking-tight text-center">
+              <Text className={`text-2xl ${textPrimary} font-medium tracking-tight text-center`}>
                 Create your account
               </Text>
-              <Text className="text-sm text-zinc-300 text-center mt-2 font-light">
+              <Text className={`text-sm ${textSecondary} text-center mt-2 font-light`}>
                 Join Medora for smarter health tracking
               </Text>
             </View>
 
             {/* Error Message */}
             {error && (
-              <View className="mb-6 p-4 bg-red-500/10 rounded-xl border border-red-500/20 flex-row items-center">
+              <View className={`mb-6 p-4 ${errorBg} rounded-xl border ${errorBorder} flex-row items-center`}>
                 <Ionicons name="alert-circle" size={20} color="#ef4444" />
-                <Text className="text-red-400 text-sm font-light ml-2 flex-1">{error}</Text>
+                <Text className={`${errorText} text-sm font-light ml-2 flex-1`}>{error}</Text>
               </View>
             )}
 
@@ -265,25 +231,25 @@ export default function SignUpScreen() {
               {/* Full Name */}
               <View className='mb-4'>
                 <TextInput
-                  className="bg-zinc-900 text-zinc-100 px-4 py-4 text-base rounded-xl placeholder:text-zinc-400"
+                  className={`${inputBg} ${inputText} px-4 py-4 text-base rounded-xl`}
                   placeholder="Full name"
-                  placeholderTextColor="#525252"
+                  placeholderTextColor={placeholderColor}
                   value={formData.fullname}
                   onChangeText={(value) => handleInputChange('fullname', value)}
                   onBlur={() => validateField('fullname', formData.fullname)}
                   editable={!loading && !googleLoading}
                 />
                 {fieldErrors.fullname ? (
-                  <Text className="text-red-400 text-xs mt-1 ml-1 font-light">{fieldErrors.fullname}</Text>
+                  <Text className={`${errorText} text-xs mt-1 ml-1 font-light`}>{fieldErrors.fullname}</Text>
                 ) : null}
               </View>
 
               {/* Email */}
               <View className='mb-4'>
                 <TextInput
-                  className="bg-zinc-900 text-zinc-100 px-4 py-4 text-base rounded-xl placeholder:text-zinc-400"
+                  className={`${inputBg} ${inputText} px-4 py-4 text-base rounded-xl`}
                   placeholder="Email address"
-                  placeholderTextColor="#525252"
+                  placeholderTextColor={placeholderColor}
                   value={formData.email}
                   onChangeText={(value) => handleInputChange('email', value)}
                   onBlur={() => validateField('email', formData.email)}
@@ -293,7 +259,7 @@ export default function SignUpScreen() {
                   editable={!loading && !googleLoading}
                 />
                 {fieldErrors.email ? (
-                  <Text className="text-red-400 text-xs mt-1 ml-1 font-light">{fieldErrors.email}</Text>
+                  <Text className={`${errorText} text-xs mt-1 ml-1 font-light`}>{fieldErrors.email}</Text>
                 ) : null}
               </View>
 
@@ -301,9 +267,9 @@ export default function SignUpScreen() {
               <View>
                 <View className="relative">
                   <TextInput
-                    className="bg-neutral-900 text-zinc-100 px-4 py-4 text-base rounded-xl pr-12 placeholder:text-zinc-400"
+                    className={`${inputBg} ${inputText} px-4 py-4 text-base rounded-xl pr-12`}
                     placeholder="Password"
-                    placeholderTextColor="#525252"
+                    placeholderTextColor={placeholderColor}
                     value={formData.password}
                     onChangeText={(value) => handleInputChange('password', value)}
                     onBlur={() => validateField('password', formData.password)}
@@ -323,9 +289,9 @@ export default function SignUpScreen() {
                   </TouchableOpacity>
                 </View>
                 {fieldErrors.password ? (
-                  <Text className="text-red-400 text-xs mt-1 ml-1 font-light">{fieldErrors.password}</Text>
+                  <Text className={`${errorText} text-xs mt-1 ml-1 font-light`}>{fieldErrors.password}</Text>
                 ) : (
-                  <Text className="text-xs text-zinc-600 mt-2 font-light ml-1">
+                  <Text className={`${textTertiary} text-xs mt-2 font-light ml-1`}>
                     Minimum 6 characters
                   </Text>
                 )}
@@ -336,21 +302,21 @@ export default function SignUpScreen() {
                 <Checkbox
                   value={termsAccepted}
                   onValueChange={setTermsAccepted}
-                  color={termsAccepted ? '#3B82F6' : '#404040'}
+                  color={termsAccepted ? checkboxColor : checkboxInactive}
                   style={{ borderRadius: 4, width: 20, height: 20 }}
                   disabled={loading || googleLoading}
                 />
-                <Text className="text-zinc-400 text-sm ml-3 font-light flex-1">
+                <Text className={`${textTertiary} text-sm ml-3 font-light flex-1`}>
                   I agree to the{' '}
                   <Text 
-                    className="text-blue-400 font-light"
+                    className={`${linkText} font-light`}
                     onPress={() => router.push('/(auth)/welcome')}
                   >
                     Terms
                   </Text>
                   {' '}and{' '}
                   <Text 
-                    className="text-blue-400 font-light"
+                    className={`${linkText} font-light`}
                     onPress={() => router.push('/(auth)/welcome')}
                   >
                     Privacy Policy
@@ -381,45 +347,27 @@ export default function SignUpScreen() {
 
               {/* Divider */}
               <View className="flex-row items-center my-6">
-                <View className="flex-1 h-[1px] bg-zinc-800" />
-                <Text className="mx-4 text-zinc-600 text-sm font-light">or</Text>
-                <View className="flex-1 h-[1px] bg-zinc-800" />
+                <View className={`flex-1 h-[1px] ${dividerBg}`} />
+                <Text className={`mx-4 ${textTertiary} text-sm font-light`}>or</Text>
+                <View className={`flex-1 h-[1px] ${dividerBg}`} />
               </View>
 
               {/* Google Sign Up */}
-             {/*  <TouchableOpacity
-             
-                disabled={googleLoading || loading}
-                className="border border-zinc-800 py-4 rounded-xl flex-row justify-center items-center"
-                activeOpacity={0.7}
-              >
-                {googleLoading ? (
-                  <ActivityIndicator size="small" color="#FFFFFF" />
-                ) : (
-                  <>
-                    <Ionicons name="logo-google" size={20} color="#FFFFFF" />
-                    <Text className="text-zinc-300 font-light text-base ml-2">
-                      Continue with Google
-                    </Text>
-                  </>
-                )}
-              </TouchableOpacity> */}
-              {/*   new Google button  */}
               <GoogleSignInButton
-               buttonText='Continue With Google'
-              onSuccess={handleGoogleSuccess}
-               onError={handleGoogleError}
-               fullWidth={true}
-              
+                buttonText='Continue With Google'
+                onSuccess={handleGoogleSuccess}
+                onError={handleGoogleError}
+                fullWidth={true}
               />
+              
               {/* Sign In Link */}
               <View className="flex-row justify-center mt-8">
-                <Text className="text-zinc-300 text-sm font-medium">Already have an account? </Text>
+                <Text className={`${textSecondary} text-sm font-medium`}>Already have an account? </Text>
                 <TouchableOpacity 
                   onPress={() => router.push('/(auth)/sign-in')}
                   disabled={loading || googleLoading}
                 >
-                  <Text className="text-blue-400 text-sm font-bold">Sign in</Text>
+                  <Text className={`${linkText} text-sm font-bold`}>Sign in</Text>
                 </TouchableOpacity>
               </View>
             </View>

@@ -2,11 +2,11 @@
 import { configureGoogleSignIn } from "@/config/firebase/services/auth/auth";
 import { notificationService } from "@/config/firebase/services/notification/service";
 import { AuthProvider, useAuth } from "@/context/auth-context";
-import { useColorScheme } from "@/hooks/use-color-scheme";
+import { ThemeProvider, useAppTheme } from "@/context/theme-context";
 import {
   DarkTheme,
   DefaultTheme,
-  ThemeProvider,
+  ThemeProvider as NavThemeProvider,
 } from "@react-navigation/native";
 import * as Linking from 'expo-linking';
 import { Stack, router } from "expo-router";
@@ -18,16 +18,17 @@ import "react-native-reanimated";
 import "../global.css";
 
 // Separate component to use auth context
+// Separate component to use auth context
 function RootLayoutNav() {
   const { isLoading, user } = useAuth();
-  const colorScheme = useColorScheme();
+  const { isDark } = useAppTheme();
   const responseListener = useRef<any>(null);
 
   // Handle deep links (for password reset)
   useEffect(() => {
     const handleDeepLink = ({ url }: { url: string }) => {
-      const { path, queryParams } = Linking.parse(url);
-      console.log('🔗 Deep link received:', { path, queryParams });
+      const { path } = Linking.parse(url);
+      console.log('🔗 Deep link received:', { path });
       
       if (path === 'reset-success') {
         Alert.alert(
@@ -43,10 +44,8 @@ function RootLayoutNav() {
       }
     };
     
-    // Add event listener for deep links
     const subscription = Linking.addEventListener('url', handleDeepLink);
     
-    // Check if app was opened from a deep link
     Linking.getInitialURL().then((url) => {
       if (url) {
         console.log('📱 App opened from URL:', url);
@@ -54,61 +53,39 @@ function RootLayoutNav() {
       }
     });
     
-    return () => {
-      subscription.remove();
-    };
+    return () => subscription.remove();
   }, []);
 
   useEffect(() => {
     setupPushNotifications();
     return () => {
-      if (responseListener.current) {
-        responseListener.current.remove();
-      }
+      if (responseListener.current) responseListener.current.remove();
     };
   }, [user]);
 
   const setupPushNotifications = async () => {
     if (!user?.uid) return;
 
-    // Register for push notifications
     const token = await notificationService.registerForPushNotifications();
     if (token) {
       await notificationService.savePushTokenToFirebase(user.uid, token);
     }
 
-    // Handle notification response (when user taps on notification)
     responseListener.current = notificationService.addNotificationResponseListener((response) => {
       const data = response.notification.request.content.data;
       console.log('📱 Notification tapped:', data);
       
-      // Navigate based on notification type
       if (data?.type === 'reminder') {
         router.push('/(dashboard)/dashboard/(tabs)/reminder');
       }
     });
   };
 
- /*  if (isLoading) {
-    return (
-      <View
-        style={{
-          flex: 1,
-          justifyContent: "center",
-          alignItems: "center",
-          backgroundColor: "#0A0A0A",
-        }}
-      >
-        <ActivityIndicator size="large" color="#FFFFFF" />
-      </View>
-    );
-  } */
-
   return (
-    <ThemeProvider value={colorScheme === "dark" ? DarkTheme : DefaultTheme}>
+    <NavThemeProvider value={isDark ? DarkTheme : DefaultTheme}>
       <Stack screenOptions={{ headerShown: false }} />
-      <StatusBar style="auto" />
-    </ThemeProvider>
+      <StatusBar style={isDark ? "light" : "dark"} />
+    </NavThemeProvider>
   );
 }
 
@@ -119,9 +96,11 @@ export default function RootLayout() {
   
   return (
     <AuthProvider>
-      <GestureHandlerRootView style={{ flex: 1 }}>
-        <RootLayoutNav />
-      </GestureHandlerRootView>
+      <ThemeProvider>
+        <GestureHandlerRootView style={{ flex: 1 }}>
+          <RootLayoutNav />
+        </GestureHandlerRootView>
+      </ThemeProvider>
     </AuthProvider>
   );
 }

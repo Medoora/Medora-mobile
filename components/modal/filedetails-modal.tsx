@@ -1,4 +1,5 @@
 import { toggleDocumentStarred, trashDocument } from '@/config/firebase/services/dashboard/documents';
+import { useAppTheme } from '@/context/theme-context';
 import { Ionicons } from '@expo/vector-icons';
 import * as FileSystem from 'expo-file-system';
 import { useEffect, useRef, useState } from 'react';
@@ -32,12 +33,27 @@ export default function FileDetailsModal({
   onClose,
   onUpdate,
 }: FileDetailsModalProps) {
+  const { isDark } = useAppTheme();
   const [isStarring, setIsStarring] = useState(false);
   const [isDownloading, setIsDownloading] = useState(false);
 
-  // ✅ Match animation distance with sheet height
   const sheetHeight = height * 0.9;
   const slideAnim = useRef(new Animated.Value(sheetHeight)).current;
+
+  // Theme-aware colors
+  const modalBg = isDark ? 'bg-neutral-900' : 'bg-white';
+  const borderColor = isDark ? 'border-neutral-800' : 'border-gray-200';
+  const textPrimary = isDark ? 'text-white' : 'text-black';
+  const textSecondary = isDark ? 'text-neutral-400' : 'text-gray-500';
+  const textTertiary = isDark ? 'text-neutral-500' : 'text-gray-400';
+  const iconColor = isDark ? '#a1a1aa' : '#6b7280';
+  const cardBg = isDark ? 'bg-neutral-800' : 'bg-gray-100';
+  const cardText = isDark ? 'text-neutral-400' : 'text-gray-500';
+  const buttonBg = isDark ? 'bg-neutral-800' : 'bg-gray-200';
+  const buttonText = isDark ? 'text-red-500' : 'text-red-600';
+  const starColor = isDark ? '#fbbf24' : '#eab308';
+  const starInactive = isDark ? '#737373' : '#9ca3af';
+  const overlayBg = isDark ? 'bg-black/70' : 'bg-black/50';
 
   useEffect(() => {
     if (visible) {
@@ -159,8 +175,7 @@ export default function FileDetailsModal({
 
   return (
     <Modal visible={visible} transparent animationType="none">
-      {/* ✅ Fix: anchor bottom */}
-      <View className="flex-1 bg-black/70 justify-end">
+      <View className={`flex-1 ${overlayBg} justify-end`}>
         <TouchableOpacity
           className="flex-1"
           activeOpacity={1}
@@ -170,22 +185,22 @@ export default function FileDetailsModal({
         <Animated.View
           style={{
             transform: [{ translateY: slideAnim }],
-            height: sheetHeight, // ✅ fixed height
+            height: sheetHeight,
           }}
-          className="bg-neutral-900 rounded-t-3xl"
+          className={`rounded-t-3xl ${modalBg}`}
         >
           {/* Header */}
-          <View className="flex-row justify-between items-center px-5 pt-5 pb-4 border-b border-neutral-800">
+          <View className={`flex-row justify-between items-center px-5 pt-5 pb-4 border-b ${borderColor}`}>
             <TouchableOpacity onPress={handleClose} className="p-2 -ml-2">
-              <Ionicons name="close" size={24} color="#a1a1aa" />
+              <Ionicons name="close" size={24} color={iconColor} />
             </TouchableOpacity>
 
-            <Text className="text-white text-base font-medium">
+            <Text className={`${textPrimary} text-base font-medium`}>
               File Details
             </Text>
 
             <TouchableOpacity onPress={handleShare} className="p-2">
-              <Ionicons name="share-outline" size={22} color="#a1a1aa" />
+              <Ionicons name="share-outline" size={22} color={iconColor} />
             </TouchableOpacity>
           </View>
 
@@ -193,7 +208,7 @@ export default function FileDetailsModal({
             showsVerticalScrollIndicator={false}
             className="flex-1"
             contentContainerStyle={{
-              paddingBottom: 40, // ✅ prevents bottom cut
+              paddingBottom: 40,
             }}
           >
             {/* Thumbnail */}
@@ -201,9 +216,7 @@ export default function FileDetailsModal({
               {file.cloudinary?.thumbnailUrl || file.cloudinary?.url ? (
                 <Image
                   source={{
-                    uri:
-                      file.cloudinary?.thumbnailUrl ||
-                      file.cloudinary?.url,
+                    uri: file.cloudinary?.thumbnailUrl || file.cloudinary?.url,
                   }}
                   className="w-64 h-64 rounded-2xl"
                   resizeMode="contain"
@@ -223,10 +236,10 @@ export default function FileDetailsModal({
               {/* File Info */}
               <View className="flex-row items-start justify-between mb-6">
                 <View className="flex-1 mr-4">
-                  <Text className="text-white text-xl font-semibold">
+                  <Text className={`${textPrimary} text-xl font-semibold`}>
                     {file.documentName}
                   </Text>
-                  <Text className="text-neutral-500 text-sm mt-1">
+                  <Text className={`${textSecondary} text-sm mt-1`}>
                     {formatFileSize(file.cloudinary?.bytes || 0)} •{' '}
                     {formatDate(file.uploadedAt)}
                   </Text>
@@ -240,38 +253,26 @@ export default function FileDetailsModal({
                   <Ionicons
                     name={file.isStarred ? 'star' : 'star-outline'}
                     size={24}
-                    color={file.isStarred ? '#fbbf24' : '#737373'}
+                    color={file.isStarred ? starColor : starInactive}
                   />
                 </TouchableOpacity>
               </View>
 
               {/* Info Cards */}
               <View className="flex-row gap-3 mb-6">
-                <View className="flex-1 bg-neutral-800 rounded-xl p-3">
-                  <Ionicons
-                    name="folder-outline"
-                    size={18}
-                    color="#737373"
-                  />
-                  <Text className="text-neutral-400 text-xs mt-2">
-                    Category
-                  </Text>
-                  <Text className="text-white text-sm font-medium mt-1">
+                <View className={`flex-1 ${cardBg} rounded-xl p-3`}>
+                  <Ionicons name="folder-outline" size={18} color="#737373" />
+                  <Text className={`${cardText} text-xs mt-2`}>Category</Text>
+                  <Text className={`${textPrimary} text-sm font-medium mt-1`}>
                     {file.categoryLabel}
                   </Text>
                 </View>
 
-                <View className="flex-1 bg-neutral-800 rounded-xl p-3">
-                  <Ionicons
-                    name="calendar-outline"
-                    size={18}
-                    color="#737373"
-                  />
-                  <Text className="text-neutral-400 text-xs mt-2">
-                    Uploaded
-                  </Text>
+                <View className={`flex-1 ${cardBg} rounded-xl p-3`}>
+                  <Ionicons name="calendar-outline" size={18} color="#737373" />
+                  <Text className={`${cardText} text-xs mt-2`}>Uploaded</Text>
                   <Text
-                    className="text-white text-sm font-medium mt-1"
+                    className={`${textPrimary} text-sm font-medium mt-1`}
                     numberOfLines={1}
                   >
                     {formatDate(file.uploadedAt)}
@@ -290,11 +291,7 @@ export default function FileDetailsModal({
                     <ActivityIndicator size="small" color="white" />
                   ) : (
                     <>
-                      <Ionicons
-                        name="download-outline"
-                        size={20}
-                        color="white"
-                      />
+                      <Ionicons name="download-outline" size={20} color="white" />
                       <Text className="text-white font-semibold text-base">
                         Download
                       </Text>
@@ -304,14 +301,10 @@ export default function FileDetailsModal({
 
                 <TouchableOpacity
                   onPress={handleMoveToTrash}
-                  className="bg-neutral-800 py-3 rounded-xl flex-row items-center justify-center gap-2"
+                  className={`${buttonBg} py-3 rounded-xl flex-row items-center justify-center gap-2`}
                 >
-                  <Ionicons
-                    name="trash-outline"
-                    size={20}
-                    color="#ef4444"
-                  />
-                  <Text className="text-red-500 font-semibold text-base">
+                  <Ionicons name="trash-outline" size={20} color="#ef4444" />
+                  <Text className={`${buttonText} font-semibold text-base`}>
                     Move to Trash
                   </Text>
                 </TouchableOpacity>
