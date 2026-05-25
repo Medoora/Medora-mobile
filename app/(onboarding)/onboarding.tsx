@@ -2,6 +2,7 @@ import CustomDialogBox from '@/components/Custom-Dialog/Cus-dialog';
 import { db } from '@/config/firebase/config';
 import { signOutUser } from '@/config/firebase/services/auth/auth';
 import { useAuth } from '@/context/auth-context';
+import { useAppTheme } from '@/context/theme-context';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { doc, updateDoc } from 'firebase/firestore';
@@ -69,12 +70,24 @@ const onboardingData: OnboardingItem[] = [
 ];
 
 const OnboardingScreen = () => {
+  const { isDark } = useAppTheme();
   const { user } = useAuth();
   const [loading, setLoading] = React.useState(false);
   const [currentIndex, setCurrentIndex] = useState(0);
   const scrollX = useRef(new Animated.Value(0)).current;
   const flatListRef = useRef<FlatList>(null);
-  const [isSkipDia, setIsSkipDia] = useState(false)
+  const [isSkipDia, setIsSkipDia] = useState(false);
+
+  // Theme-aware colors
+  const bgColor = isDark ? 'bg-black' : 'bg-white';
+  const textPrimary = isDark ? 'text-white' : 'text-black';
+  const textSecondary = isDark ? 'text-neutral-400' : 'text-gray-500';
+  const textTertiary = isDark ? 'text-neutral-500' : 'text-gray-400';
+  const borderColor = isDark ? 'bg-neutral-800' : 'bg-gray-200';
+  const dividerBg = isDark ? 'bg-neutral-800' : 'bg-gray-300';
+  const skipText = isDark ? 'text-neutral-500' : 'text-gray-500';
+  const paginationActive = '#3b82f6';
+  const paginationInactive = isDark ? '#1f1f1f' : '#e5e5e5';
 
   const handleOpenWebForm = async () => {
     if (!user) return;
@@ -90,27 +103,26 @@ const OnboardingScreen = () => {
   };
 
   const handleSkipOnboarding = async () => {
-   setLoading(true);
-            try {
-              const userRef = doc(db, 'users', user!.uid);
-              await updateDoc(userRef, {
-                hasCompletedOnboarding: true,
-                onboardingSkipped: true,
-                onboardingSkippedAt: new Date(),
-                updatedAt: new Date(),
-              });
-              
-              router.replace('/(dashboard)/dashboard/(tabs)');
-            } catch (error) {
-              console.error('Error skipping onboarding:', error);
-              Alert.alert('Error', 'Failed to skip onboarding. Please try again.');
-            } finally {
-              setLoading(false);
-            }
+    setLoading(true);
+    try {
+      const userRef = doc(db, 'users', user!.uid);
+      await updateDoc(userRef, {
+        hasCompletedOnboarding: true,
+        onboardingSkipped: true,
+        onboardingSkippedAt: new Date(),
+        updatedAt: new Date(),
+      });
+      
+      router.replace('/(dashboard)/dashboard/(tabs)');
+    } catch (error) {
+      console.error('Error skipping onboarding:', error);
+      Alert.alert('Error', 'Failed to skip onboarding. Please try again.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleGoToApp = async () => {
-    // Skip onboarding and go directly to app
     setLoading(true);
     try {
       const userRef = doc(db, 'users', user!.uid);
@@ -184,17 +196,15 @@ const OnboardingScreen = () => {
             alignItems: 'center',
           }}
         >
-         
-           <Image
+          <Image
             className='h-96 w-96'
             source={item.image}
-            />
-         
+          />
 
-          <Text className="text-white text-3xl font-bold text-center mb-4">
+          <Text className={`${textPrimary} text-3xl font-bold text-center mb-4`}>
             {item.title}
           </Text>
-          <Text className="text-neutral-400 text-center text-base leading-6 px-4">
+          <Text className={`${textSecondary} text-center text-base leading-6 px-4`}>
             {item.description}
           </Text>
         </Animated.View>
@@ -227,7 +237,7 @@ const OnboardingScreen = () => {
             width: dotWidth,
             height: 6,
             borderRadius: 3,
-            backgroundColor: '#3b82f6',
+            backgroundColor: currentIndex === i ? paginationActive : paginationInactive,
             marginHorizontal: 4,
             opacity,
           }}
@@ -256,107 +266,95 @@ const OnboardingScreen = () => {
   const isLastSlide = currentIndex === onboardingData.length - 1;
 
   return (
-  <>
-    <SafeAreaView className="flex-1 bg-black">
-      <View className="flex-1">
-        {/* Skip Button */}
-        <TouchableOpacity
-          onPress={() => {
-            setIsSkipDia(true)
-          }}
-          className="absolute top-2 right-6 z-10 py-2 px-3"
-        >
-          <Text className="text-neutral-500 text-sm">Skip</Text>
-        </TouchableOpacity>
-
-        {/* Carousel */}
-        <FlatList
-          ref={flatListRef}
-          data={onboardingData}
-          renderItem={renderItem}
-          horizontal
-          pagingEnabled
-          showsHorizontalScrollIndicator={false}
-          onScroll={onScroll}
-          onViewableItemsChanged={onViewableItemsChanged}
-          viewabilityConfig={viewabilityConfig}
-          keyExtractor={(item) => item.id}
-          scrollEventThrottle={16}
-          className="flex-1"
-        />
-
-        {/* Pagination */}
-        {renderPagination()}
-
-        {/* Action Buttons */}
-        <View className="px-6 pb-8">
-          {isLastSlide ? (
-            <TouchableOpacity
-              onPress={handleOpenWebForm}
-              disabled={loading}
-              className={`w-full bg-blue-600 py-4 rounded-2xl mb-3 flex-row items-center justify-center gap-2 ${loading ? 'opacity-50' : ''}`}
-            >
-              {loading ? (
-                <ActivityIndicator size="small" color="white" />
-              ) : (
-                <>
-                  <Ionicons name="arrow-forward-outline" size={20} color="white" />
-                  <Text className="text-white font-semibold text-base">
-                    Go to App
-                  </Text>
-                </>
-              )}
-            </TouchableOpacity>
-          ) : (
-            <TouchableOpacity
-              onPress={handleNext}
-              className="w-full bg-blue-600 py-4 rounded-2xl mb-3 flex-row items-center justify-center gap-2"
-            >
-              <Text className="text-white font-semibold text-base">Next</Text>
-              <Ionicons name="chevron-forward-outline" size={20} color="white" />
-            </TouchableOpacity>
-          )}
-
-          {/* Skip for now - only on last slide */}
-         {/*  {isLastSlide && !loading && (
-            <TouchableOpacity
-              onPress={handleSkipOnboarding}
-              className="w-full py-3 rounded-2xl"
-            >
-              <Text className="text-neutral-500 text-center text-sm">
-                Complete profile later
-              </Text>
-            </TouchableOpacity>
-          )}
- */}
-          {/* Divider and Logout */}
-          <View className="flex-row items-center gap-4 mt-5">
-            <View className="flex-1 h-px bg-neutral-800" />
-            <Text className="text-neutral-600 text-xs">already have an account?</Text>
-            <View className="flex-1 h-px bg-neutral-800" />
-          </View>
-
+    <>
+      <SafeAreaView className={`flex-1 ${bgColor}`}>
+        <View className="flex-1">
+          {/* Skip Button */}
           <TouchableOpacity
-            onPress={handleLogout}
-            className="flex-row items-center justify-center gap-2 py-3 mt-2"
+            onPress={() => {
+              setIsSkipDia(true);
+            }}
+            className="absolute top-2 right-6 z-10 py-2 px-3"
           >
-            <Ionicons name="log-out-outline" size={18} color="#737373" />
-            <Text className="text-neutral-500 text-sm">Sign out</Text>
+            <Text className={`${skipText} text-sm`}>Skip</Text>
           </TouchableOpacity>
-        </View>
-      </View>
-    </SafeAreaView>
 
-    <CustomDialogBox
-     visible={isSkipDia}
-     title='Skip Onboarding'
-     message='Are you sure you want to skip onboarding? Skipping this step may prevent the chatbot from generating your chat history data.'
-     onConfirm={handleSkipOnboarding}
-     onCancel={() => {
-       setIsSkipDia(false)
-     }}
-    />
-  </>
+          {/* Carousel */}
+          <FlatList
+            ref={flatListRef}
+            data={onboardingData}
+            renderItem={renderItem}
+            horizontal
+            pagingEnabled
+            showsHorizontalScrollIndicator={false}
+            onScroll={onScroll}
+            onViewableItemsChanged={onViewableItemsChanged}
+            viewabilityConfig={viewabilityConfig}
+            keyExtractor={(item) => item.id}
+            scrollEventThrottle={16}
+            className="flex-1"
+          />
+
+          {/* Pagination */}
+          {renderPagination()}
+
+          {/* Action Buttons */}
+          <View className="px-6 pb-8">
+            {isLastSlide ? (
+              <TouchableOpacity
+                onPress={handleOpenWebForm}
+                disabled={loading}
+                className={`w-full bg-blue-600 py-4 rounded-2xl mb-3 flex-row items-center justify-center gap-2 ${loading ? 'opacity-50' : ''}`}
+              >
+                {loading ? (
+                  <ActivityIndicator size="small" color="white" />
+                ) : (
+                  <>
+                    <Ionicons name="arrow-forward-outline" size={20} color="white" />
+                    <Text className="text-white font-semibold text-base">
+                      Complete Profile
+                    </Text>
+                  </>
+                )}
+              </TouchableOpacity>
+            ) : (
+              <TouchableOpacity
+                onPress={handleNext}
+                className="w-full bg-blue-600 py-4 rounded-2xl mb-3 flex-row items-center justify-center gap-2"
+              >
+                <Text className="text-white font-semibold text-base">Next</Text>
+                <Ionicons name="chevron-forward-outline" size={20} color="white" />
+              </TouchableOpacity>
+            )}
+
+            {/* Divider and Logout */}
+            <View className="flex-row items-center gap-4 mt-5">
+              <View className={`flex-1 h-px ${dividerBg}`} />
+              <Text className={`${textTertiary} text-xs`}>already have an account?</Text>
+              <View className={`flex-1 h-px ${dividerBg}`} />
+            </View>
+
+            <TouchableOpacity
+              onPress={handleLogout}
+              className="flex-row items-center justify-center gap-2 py-3 mt-2"
+            >
+              <Ionicons name="log-out-outline" size={18} color="#737373" />
+              <Text className={`${textTertiary} text-sm`}>Sign out</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </SafeAreaView>
+
+      <CustomDialogBox
+        visible={isSkipDia}
+        title='Skip Onboarding'
+        message='Are you sure you want to skip onboarding? Skipping this step may prevent the chatbot from generating your chat history data.'
+        onConfirm={handleSkipOnboarding}
+        onCancel={() => {
+          setIsSkipDia(false);
+        }}
+      />
+    </>
   );
 };
 

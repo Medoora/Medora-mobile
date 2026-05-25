@@ -6,6 +6,7 @@ import {
   trashDocument,
 } from "@/config/firebase/services/dashboard/documents";
 import { useAuth } from "@/context/auth-context";
+import { useAppTheme } from "@/context/theme-context";
 import { Ionicons } from "@expo/vector-icons";
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
@@ -32,6 +33,9 @@ if (Platform.OS === "android") {
 }
 
 export default function StarredScreen() {
+  const { user } = useAuth();
+  const { isDark } = useAppTheme();
+  
   const [searchQuery, setSearchQuery] = useState("");
   const [sortBy, setSortBy] = useState("date");
   const [files, setFiles] = useState<any[]>([]);
@@ -48,7 +52,18 @@ export default function StarredScreen() {
   const [isUploading, setIsUploading] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const scrollY = useRef(new Animated.Value(0)).current;
-  const { user } = useAuth();
+
+  // Theme-aware colors
+  const bgColor = isDark ? 'bg-black' : 'bg-white';
+  const cardBg = isDark ? 'bg-neutral-900' : 'bg-gray-100';
+  const borderColor = isDark ? 'border-neutral-800' : 'border-gray-200';
+  const textPrimary = isDark ? 'text-white' : 'text-black';
+  const textSecondary = isDark ? 'text-neutral-400' : 'text-gray-500';
+  const textTertiary = isDark ? 'text-neutral-500' : 'text-gray-400';
+  const inputBg = isDark ? 'bg-neutral-900' : 'bg-gray-100';
+  const iconColor = isDark ? '#737373' : '#9ca3af';
+  const skeletonBg = isDark ? 'bg-neutral-800/50' : 'bg-gray-200';
+  const skeletonInner = isDark ? 'bg-neutral-700/50' : 'bg-gray-300';
 
   const sortOptions = [
     { id: "date", label: "Date", icon: "calendar-outline" },
@@ -201,30 +216,30 @@ export default function StarredScreen() {
       return dateB.getTime() - dateA.getTime();
     });
 
-  // Skeleton Loader Component
+  // Skeleton Loader Component with theme support
   const SkeletonLoader = () => (
     <View className="px-4 pt-4">
-      <View className="bg-neutral-800/50 rounded-xl h-11 mb-6" />
+      <View className={`${skeletonBg} rounded-xl h-11 mb-6`} />
       <View className="flex-row justify-between mb-6">
-        <View className="bg-neutral-800/50 rounded-lg h-8 w-20" />
+        <View className={`${skeletonBg} rounded-lg h-8 w-20`} />
         <View className="flex-row gap-3">
           {[1, 2, 3].map((i) => (
-            <View key={i} className="bg-neutral-800/50 rounded-lg h-8 w-16" />
+            <View key={i} className={`${skeletonBg} rounded-lg h-8 w-16`} />
           ))}
         </View>
       </View>
-      <View className="bg-neutral-800/50 rounded h-4 w-32 mb-6" />
+      <View className={`${skeletonBg} rounded h-4 w-32 mb-6`} />
       {[1, 2, 3, 4].map((i) => (
         <View
           key={i}
-          className="flex-row items-center p-4 bg-neutral-800/30 rounded-xl mb-3"
+          className={`flex-row items-center p-4 ${skeletonBg} rounded-xl mb-3`}
         >
-          <View className="w-10 h-10 bg-neutral-700/50 rounded-lg" />
+          <View className={`w-10 h-10 ${skeletonInner} rounded-lg`} />
           <View className="flex-1 ml-3">
-            <View className="bg-neutral-700/50 rounded h-4 w-40 mb-2" />
-            <View className="bg-neutral-700/50 rounded h-3 w-24" />
+            <View className={`${skeletonInner} rounded h-4 w-40 mb-2`} />
+            <View className={`${skeletonInner} rounded h-3 w-24`} />
           </View>
-          <View className="w-6 h-6 bg-neutral-700/50 rounded-full" />
+          <View className={`w-6 h-6 ${skeletonInner} rounded-full`} />
         </View>
       ))}
     </View>
@@ -237,7 +252,7 @@ export default function StarredScreen() {
       <TouchableOpacity
         onPress={() => handleFilePress(file)}
         activeOpacity={0.7}
-        className="flex-row items-center px-4 py-3 bg-neutral-900 rounded-xl mb-2"
+        className={`flex-row items-center px-4 py-3 ${cardBg} rounded-xl mb-2`}
       >
         {file.cloudinary?.thumbnailUrl ? (
           <Image
@@ -252,15 +267,15 @@ export default function StarredScreen() {
         )}
 
         <View className="flex-1 ml-3">
-          <Text className="text-white text-sm font-medium" numberOfLines={1}>
+          <Text className={`${textPrimary} text-sm font-medium`} numberOfLines={1}>
             {file.documentName}
           </Text>
           <View className="flex-row items-center mt-1">
-            <Text className="text-neutral-500 text-xs">
+            <Text className={`${textTertiary} text-xs`}>
               {formatFileSize(file.cloudinary?.bytes || 0)}
             </Text>
             <Text className="text-neutral-600 text-xs mx-1">•</Text>
-            <Text className="text-neutral-500 text-xs">
+            <Text className={`${textTertiary} text-xs`}>
               {formatDate(file.uploadedAt)}
             </Text>
           </View>
@@ -277,7 +292,7 @@ export default function StarredScreen() {
           }}
           className="p-2"
         >
-          <Ionicons name="ellipsis-vertical" size={18} color="#737373" />
+          <Ionicons name="ellipsis-vertical" size={18} color={iconColor} />
         </TouchableOpacity>
       </TouchableOpacity>
     );
@@ -303,7 +318,7 @@ export default function StarredScreen() {
           [{ nativeEvent: { contentOffset: { y: scrollY } } }],
           { useNativeDriver: true },
         )}
-        className="flex-1 bg-black"
+        className={`flex-1 ${bgColor}`}
         refreshControl={
           <RefreshControl
             refreshing={refreshing}
@@ -312,20 +327,20 @@ export default function StarredScreen() {
           />
         }
       >
-        <View className="px-4 pt-4 pb-24">
+        <View className={`px-4 pt-4 pb-24 ${bgColor}`}>
           {/* Search Bar */}
-          <View className="flex-row items-center bg-neutral-900 rounded-xl px-4 mb-6 border border-neutral-800">
-            <Ionicons name="search-outline" size={18} color="#737373" />
+          <View className={`flex-row items-center ${inputBg} rounded-xl px-4 mb-6 border ${borderColor}`}>
+            <Ionicons name="search-outline" size={18} color={iconColor} />
             <TextInput
-              className="flex-1 text-white py-3 ml-2"
+              className={`flex-1 ${textPrimary} py-3 ml-2`}
               placeholder="Search starred files..."
-              placeholderTextColor="#737373"
+              placeholderTextColor={iconColor}
               value={searchQuery}
               onChangeText={setSearchQuery}
             />
             {searchQuery.length > 0 && (
               <TouchableOpacity onPress={() => setSearchQuery("")}>
-                <Ionicons name="close-circle" size={16} color="#737373" />
+                <Ionicons name="close-circle" size={16} color={iconColor} />
               </TouchableOpacity>
             )}
           </View>
@@ -336,7 +351,7 @@ export default function StarredScreen() {
             <>
               {/* Sort Options */}
               <View className="flex-row items-center justify-between mb-4">
-                <Text className="text-neutral-400 text-xs">Sort by</Text>
+                <Text className={`${textSecondary} text-xs`}>Sort by</Text>
                 <View className="flex-row gap-3">
                   {sortOptions.map((option) => (
                     <TouchableOpacity
@@ -350,7 +365,7 @@ export default function StarredScreen() {
                         className={`text-xs ${
                           sortBy === option.id
                             ? "text-blue-500"
-                            : "text-neutral-500"
+                            : textTertiary
                         }`}
                       >
                         {option.label}
@@ -361,12 +376,12 @@ export default function StarredScreen() {
               </View>
 
               {/* Stats Bar */}
-              <View className="flex-row justify-between items-center mb-5 pb-2 border-b border-neutral-800">
-                <Text className="text-neutral-500 text-xs">
+              <View className={`flex-row justify-between items-center mb-5 pb-2 border-b ${borderColor}`}>
+                <Text className={`${textTertiary} text-xs`}>
                   {filteredFiles.length}{" "}
                   {filteredFiles.length === 1 ? "item" : "items"}
                 </Text>
-                <Text className="text-neutral-500 text-xs">
+                <Text className={`${textTertiary} text-xs`}>
                   {formatFileSize(totalStorageUsed)}
                 </Text>
               </View>
@@ -379,10 +394,10 @@ export default function StarredScreen() {
               ) : (
                 <View className="items-center py-16">
                   <Ionicons name="star-outline" size={48} color="#4b5563" />
-                  <Text className="text-neutral-400 text-base font-medium mt-4">
+                  <Text className={`${textSecondary} text-base font-medium mt-4`}>
                     No starred files
                   </Text>
-                  <Text className="text-neutral-500 text-sm text-center mt-2">
+                  <Text className={`${textTertiary} text-sm text-center mt-2`}>
                     {searchQuery
                       ? "No matching files found"
                       : "Star important files to see them here"}

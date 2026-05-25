@@ -1,6 +1,7 @@
 import { signOutUser } from '@/config/firebase/services/auth/auth';
 import { StorageService, UserStorage } from '@/config/firebase/services/storage-tracker/service';
 import { useAuth } from '@/context/auth-context';
+import { useAppTheme } from '@/context/theme-context';
 import { getInitials } from '@/utils/cryto';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -31,17 +32,36 @@ export default function Sidebar({
   onUploadPress,
   notificationsEnabled = true,
   onNotificationsToggle,
-  darkMode = true,
+  darkMode: propDarkMode = true,
   onDarkModeToggle,
 }: SidebarProps) {
+  const { user } = useAuth();
+  const { theme, setTheme, isDark } = useAppTheme();
   const slideAnim = useRef(new Animated.Value(-SIDEBAR_WIDTH)).current;
   const scrollY = useRef(new Animated.Value(0)).current;
-  const { user } = useAuth();
   const pathname = usePathname();
   const insets = useSafeAreaInsets();
   const [storageInfo, setStorageInfo] = useState<UserStorage | null>(null);
   const [loadingStorage, setLoadingStorage] = useState(true);
-  const [isLoginVisible, setIsLoginVisible] = useState(false)
+  const [isLoginVisible, setIsLoginVisible] = useState(false);
+  const [localDarkMode, setLocalDarkMode] = useState(isDark);
+
+  // Theme-aware colors
+  const bgColor = isDark ? '#0a0a0a' : '#f5f5f5';
+  const textPrimary = isDark ? 'text-white' : 'text-black';
+  const textSecondary = isDark ? 'text-neutral-400' : 'text-gray-500';
+  const textTertiary = isDark ? 'text-neutral-500' : 'text-gray-400';
+  const cardBg = isDark ? 'bg-neutral-900' : 'bg-white';
+  const borderColor = isDark ? 'border-neutral-800' : 'border-gray-200';
+  const iconColor = isDark ? '#737373' : '#9ca3af';
+  const activeBg = isDark ? 'bg-blue-500/10' : 'bg-blue-100';
+  const activeText = isDark ? 'text-white' : 'text-blue-600';
+  const activeIcon = isDark ? '#3b82f6' : '#2563eb';
+
+  // Sync local dark mode with theme
+  useEffect(() => {
+    setLocalDarkMode(isDark);
+  }, [isDark]);
 
   const getCurrentTab = () => {
     if (pathname.includes('mydrive')) return 'My Drive';
@@ -93,21 +113,19 @@ export default function Sidebar({
     }
   }, [isVisible]);
 
-const handleSignOut = async () => {
-  try {
-    await signOutUser();
-    setIsLoginVisible(false); // Close dialog first
-    handleClose(); // Close the sidebar
-    // Small delay to ensure animations complete
-    setTimeout(() => {
-      router.push("/(auth)/sign-in");
-    }, 300);
-  } catch (error) {
-    console.log("Error", error);
-    setIsLoginVisible(false); // Close dialog even on error
-  }
-};
-
+  const handleSignOut = async () => {
+    try {
+      await signOutUser();
+      setIsLoginVisible(false);
+      handleClose();
+      setTimeout(() => {
+        router.push("/(auth)/sign-in");
+      }, 300);
+    } catch (error) {
+      console.log("Error", error);
+      setIsLoginVisible(false);
+    }
+  };
 
   const handleClose = () => {
     Animated.timing(slideAnim, {
@@ -117,6 +135,15 @@ const handleSignOut = async () => {
     }).start(() => {
       onClose();
     });
+  };
+
+  const handleThemeToggle = async (value: boolean) => {
+    setLocalDarkMode(value);
+    const newTheme = value ? 'dark' : 'light';
+    await setTheme(newTheme);
+    if (onDarkModeToggle) {
+      onDarkModeToggle(value);
+    }
   };
 
   const formatFileSize = (bytes: number) => {
@@ -162,9 +189,9 @@ const handleSignOut = async () => {
               left: 0,
               top: 0,
               bottom: 0,
-              backgroundColor: '#0a0a0a',
+              backgroundColor: bgColor,
               borderRightWidth: 1,
-              borderRightColor: '#262626',
+              borderRightColor: isDark ? '#262626' : '#e5e5e5',
             }
           ]}
         >
@@ -173,9 +200,9 @@ const handleSignOut = async () => {
             <Animated.View 
               style={{ 
                 opacity: headerOpacity,
-                backgroundColor: '#0a0a0a',
+                backgroundColor: bgColor,
                 borderBottomWidth: 1,
-                borderBottomColor: '#262626',
+                borderBottomColor: isDark ? '#262626' : '#e5e5e5',
                 zIndex: 10,
               }}
             >
@@ -186,10 +213,10 @@ const handleSignOut = async () => {
                       source={require("@/assets/logo/logo.png")}
                       className='w-12 h-12'
                     />
-                    <Text className="text-white text-xl font-bold -ml-2">Medora</Text> 
+                    <Text className={`text-xl font-bold -ml-2 ${textPrimary}`}>Medora</Text> 
                   </View>
                   <TouchableOpacity onPress={handleClose} className="w-10 h-10 items-center justify-center">
-                    <Ionicons name="close" size={24} color="#a1a1aa" />
+                    <Ionicons name="close" size={24} color={iconColor} />
                   </TouchableOpacity>
                 </View>
               </View>
@@ -213,40 +240,37 @@ const handleSignOut = async () => {
                     onNavigate('/(dashboard)/dashboard/(tabs)/settings');
                     handleClose();
                   }}
-                  className="flex-row items-center bg-neutral-800/50 p-3 rounded-xl mb-6"
+                  className={`flex-row items-center p-3 rounded-xl mb-6 ${isDark ? 'bg-neutral-800/50' : 'bg-gray-100'}`}
                 >
                   <View className="w-12 h-12 bg-blue-500/20 rounded-full items-center justify-center">
-                   {
-                     !user?.photoURL ? (
-                      <>
-                      <Text className='text-white  font-semibold uppercase'>
-                       {getInitials(user?.displayName|| 'User')}
-                                </Text>
-                                </>)
-                                 : ( <Image
-                                src={user?.photoURL|| ""}
-                                alt=''
-                                className='w-12 h-12 rounded-full object-contain'
-                               />)
-                              }
+                    {!user?.photoURL ? (
+                      <Text className={`font-semibold uppercase ${textPrimary}`}>
+                        {getInitials(user?.displayName || 'User')}
+                      </Text>
+                    ) : (
+                      <Image
+                        source={{ uri: user?.photoURL }}
+                        className='w-12 h-12 rounded-full object-contain'
+                      />
+                    )}
                   </View>
                   <View className="ml-3 flex-1">
-                    <Text className="text-white text-lg font-medium">{user?.displayName || "User"}</Text>
-                    <Text className='text-white text-xs opacity-50'>{user?.email}</Text>
+                    <Text className={`text-lg font-medium ${textPrimary}`}>{user?.displayName || "User"}</Text>
+                    <Text className={`text-xs opacity-50 ${textSecondary}`}>{user?.email}</Text>
                   </View>
                 </TouchableOpacity>
 
                 {/* Analytics Section - Storage Tracker */}
                 <View className="mb-6">
-                  <Text className="text-neutral-500 text-xs uppercase tracking-wider mb-3">Analytics</Text>
+                  <Text className={`text-xs uppercase tracking-wider mb-3 ${textSecondary}`}>Analytics</Text>
                   
-                  <View className="bg-neutral-900 rounded-xl p-4 mb-3">
-                    <Text className="text-neutral-400 text-xs mb-2">Storage Usage</Text>
+                  <View className={`rounded-xl p-4 mb-3 ${cardBg}`}>
+                    <Text className={`text-xs mb-2 ${textSecondary}`}>Storage Usage</Text>
                     <View className="flex-row justify-between items-end mb-2">
-                      <Text className="text-white text-2xl font-bold">
+                      <Text className={`text-2xl font-bold ${textPrimary}`}>
                         {loadingStorage ? '...' : formatFileSize(totalBytes)}
                       </Text>
-                      <Text className="text-neutral-500 text-xs">
+                      <Text className={`text-xs ${textTertiary}`}>
                         of {storageLimitMB} MB
                       </Text>
                     </View>
@@ -256,7 +280,7 @@ const handleSignOut = async () => {
                         style={{ width: `${loadingStorage ? 0 : storagePercentage}%` }}
                       />
                     </View>
-                    <Text className="text-neutral-500 text-xs mt-2">
+                    <Text className={`text-xs mt-2 ${textTertiary}`}>
                       {loadingStorage ? 'Loading...' : `${storagePercentage.toFixed(1)}% used`}
                     </Text>
                   </View>
@@ -266,19 +290,19 @@ const handleSignOut = async () => {
                       onNavigate('/(screens)/storage-anal');
                       handleClose();
                     }}
-                    className="flex-row items-center justify-between px-4 py-3 rounded-xl bg-neutral-800/50"
+                    className={`flex-row items-center justify-between px-4 py-3 rounded-xl ${isDark ? 'bg-neutral-800/50' : 'bg-gray-100'}`}
                   >
                     <View className="flex-row items-center">
-                      <Ionicons name="stats-chart-outline" size={20} color="#737373" />
-                      <Text className="text-neutral-300 ml-3">View Detailed Analytics</Text>
+                      <Ionicons name="stats-chart-outline" size={20} color={iconColor} />
+                      <Text className={`ml-3 ${textSecondary}`}>View Detailed Analytics</Text>
                     </View>
-                    <Ionicons name="chevron-forward" size={16} color="#737373" />
+                    <Ionicons name="chevron-forward" size={16} color={iconColor} />
                   </TouchableOpacity>
                 </View>
 
                 {/* Starred & Recents */}
                 <View className="mb-6">
-                  <Text className="text-neutral-500 text-xs uppercase tracking-wider mb-3">Collections</Text>
+                  <Text className={`text-xs uppercase tracking-wider mb-3 ${textSecondary}`}>Collections</Text>
                   
                   <TouchableOpacity 
                     onPress={() => {
@@ -286,11 +310,11 @@ const handleSignOut = async () => {
                       handleClose();
                     }}
                     className={`flex-row items-center px-4 py-3 rounded-xl mb-2 ${
-                      currentTab === 'Starred' ? 'bg-blue-500/10' : ''
+                      currentTab === 'Starred' ? activeBg : ''
                     }`}
                   >
-                    <Ionicons name="star-outline" size={20} color={currentTab === 'Starred' ? '#3b82f6' : '#737373'} />
-                    <Text className={`ml-3 ${currentTab === 'Starred' ? 'text-white font-medium' : 'text-neutral-400'}`}>
+                    <Ionicons name="star-outline" size={20} color={currentTab === 'Starred' ? activeIcon : iconColor} />
+                    <Text className={`ml-3 ${currentTab === 'Starred' ? activeText : textSecondary}`}>
                       Starred Files
                     </Text>
                   </TouchableOpacity>
@@ -301,11 +325,11 @@ const handleSignOut = async () => {
                       handleClose();
                     }}
                     className={`flex-row items-center px-4 py-3 rounded-xl mb-2 ${
-                      currentTab === 'Recents' ? 'bg-blue-500/10' : ''
+                      currentTab === 'Recents' ? activeBg : ''
                     }`}
                   >
-                    <Ionicons name="time-outline" size={20} color={currentTab === 'Recents' ? '#3b82f6' : '#737373'} />
-                    <Text className={`ml-3 ${currentTab === 'Recents' ? 'text-white font-medium' : 'text-neutral-400'}`}>
+                    <Ionicons name="time-outline" size={20} color={currentTab === 'Recents' ? activeIcon : iconColor} />
+                    <Text className={`ml-3 ${currentTab === 'Recents' ? activeText : textSecondary}`}>
                       Recent Files
                     </Text>
                   </TouchableOpacity>
@@ -313,7 +337,7 @@ const handleSignOut = async () => {
 
                 {/* Trash & Settings */}
                 <View className="mb-6">
-                  <Text className="text-neutral-500 text-xs uppercase tracking-wider mb-3">Manage</Text>
+                  <Text className={`text-xs uppercase tracking-wider mb-3 ${textSecondary}`}>Manage</Text>
                   
                   <TouchableOpacity 
                     onPress={() => {
@@ -321,11 +345,11 @@ const handleSignOut = async () => {
                       handleClose();
                     }}
                     className={`flex-row items-center px-4 py-3 rounded-xl mb-2 ${
-                      currentTab === 'Trash' ? 'bg-blue-500/10' : ''
+                      currentTab === 'Trash' ? activeBg : ''
                     }`}
                   >
-                    <Ionicons name="trash-outline" size={20} color={currentTab === 'Trash' ? '#3b82f6' : '#737373'} />
-                    <Text className={`ml-3 ${currentTab === 'Trash' ? 'text-white font-medium' : 'text-neutral-400'}`}>
+                    <Ionicons name="trash-outline" size={20} color={currentTab === 'Trash' ? activeIcon : iconColor} />
+                    <Text className={`ml-3 ${currentTab === 'Trash' ? activeText : textSecondary}`}>
                       Trash
                     </Text>
                   </TouchableOpacity>
@@ -336,11 +360,11 @@ const handleSignOut = async () => {
                       handleClose();
                     }}
                     className={`flex-row items-center px-4 py-3 rounded-xl mb-2 ${
-                      currentTab === 'Settings' ? 'bg-blue-500/10' : ''
+                      currentTab === 'Settings' ? activeBg : ''
                     }`}
                   >
-                    <Ionicons name="settings-outline" size={20} color={currentTab === 'Settings' ? '#3b82f6' : '#737373'} />
-                    <Text className={`ml-3 ${currentTab === 'Settings' ? 'text-white font-medium' : 'text-neutral-400'}`}>
+                    <Ionicons name="settings-outline" size={20} color={currentTab === 'Settings' ? activeIcon : iconColor} />
+                    <Text className={`ml-3 ${currentTab === 'Settings' ? activeText : textSecondary}`}>
                       Settings
                     </Text>
                   </TouchableOpacity>
@@ -348,27 +372,27 @@ const handleSignOut = async () => {
 
                 {/* Preferences */}
                 <View className="mb-6">
-                  <Text className="text-neutral-500 text-xs uppercase tracking-wider mb-3">Preferences</Text>
+                  <Text className={`text-xs uppercase tracking-wider mb-3 ${textSecondary}`}>Preferences</Text>
                   
-                 <TouchableOpacity 
-  onPress={() => {
-    onNavigate("/(screens)/noti-settings");
-    handleClose();
-  }}
-  className="flex-row items-center px-4 py-3 rounded-xl mb-2"
->
-  <Ionicons name="notifications-outline" size={20} color="#737373" />
-  <Text className="text-neutral-300 ml-3">Notification Settings</Text>
-</TouchableOpacity>
+                  <TouchableOpacity 
+                    onPress={() => {
+                      onNavigate("/(screens)/noti-settings");
+                      handleClose();
+                    }}
+                    className="flex-row items-center px-4 py-3 rounded-xl mb-2"
+                  >
+                    <Ionicons name="notifications-outline" size={20} color={iconColor} />
+                    <Text className={`ml-3 ${textSecondary}`}>Notification Settings</Text>
+                  </TouchableOpacity>
                   
                   <View className="flex-row items-center justify-between px-4 py-3 rounded-xl mb-2">
                     <View className="flex-row items-center">
-                      <Ionicons name="moon-outline" size={20} color="#737373" />
-                      <Text className="text-neutral-300 ml-3">Dark Mode</Text>
+                      <Ionicons name="moon-outline" size={20} color={iconColor} />
+                      <Text className={`ml-3 ${textSecondary}`}>Dark Mode</Text>
                     </View>
                     <Switch
-                      value={darkMode}
-                      onValueChange={onDarkModeToggle || (() => {})}
+                      value={localDarkMode}
+                      onValueChange={handleThemeToggle}
                       trackColor={{ false: '#3f3f46', true: '#3b82f6' }}
                       thumbColor="#ffffff"
                     />
@@ -377,7 +401,7 @@ const handleSignOut = async () => {
 
                 {/* Help & Support */}
                 <View className="mb-6">
-                  <Text className="text-neutral-500 text-xs uppercase tracking-wider mb-3">Support</Text>
+                  <Text className={`text-xs uppercase tracking-wider mb-3 ${textSecondary}`}>Support</Text>
 
                   <TouchableOpacity 
                     onPress={() => {
@@ -386,8 +410,8 @@ const handleSignOut = async () => {
                     }}
                     className="flex-row items-center px-4 py-3 rounded-xl mb-2"
                   >
-                    <Ionicons name="help-circle-outline" size={20} color="#737373" />
-                    <Text className="text-neutral-300 ml-3">Help Center</Text>
+                    <Ionicons name="help-circle-outline" size={20} color={iconColor} />
+                    <Text className={`ml-3 ${textSecondary}`}>Help Center</Text>
                   </TouchableOpacity>
 
                   <TouchableOpacity 
@@ -397,8 +421,8 @@ const handleSignOut = async () => {
                     }}
                     className="flex-row items-center px-4 py-3 rounded-xl mb-2"
                   >
-                    <Ionicons name="chatbubble-outline" size={20} color="#737373" />
-                    <Text className="text-neutral-300 ml-3">Testimonials</Text>
+                    <Ionicons name="chatbubble-outline" size={20} color={iconColor} />
+                    <Text className={`ml-3 ${textSecondary}`}>Testimonials</Text>
                   </TouchableOpacity>
                 </View>
 
@@ -417,7 +441,7 @@ const handleSignOut = async () => {
 
             {/* Gradient Overlay at Bottom */}
             <LinearGradient
-              colors={['transparent', '#0a0a0a']}
+              colors={isDark ? ['transparent', '#0a0a0a'] : ['transparent', '#f5f5f5']}
               locations={[0, 0.3]}
               style={{
                 position: 'absolute',
@@ -433,16 +457,15 @@ const handleSignOut = async () => {
       </View>
 
       <CustomDialogBox
-       visible={isLoginVisible}
-      title={`Sign out ${user?.displayName}`} 
-      actionButtonName='Logout'
-      message='Are You Sure You Want to SignOut ?'
-      onCancel={() => setIsLoginVisible(false)}
-      onConfirm={() => {
-         handleSignOut()
-         setIsLoginVisible(false)
-      }}
-
+        visible={isLoginVisible}
+        title={`Sign out ${user?.displayName}`} 
+        actionButtonName='Logout'
+        message='Are You Sure You Want to Sign Out?'
+        onCancel={() => setIsLoginVisible(false)}
+        onConfirm={() => {
+          handleSignOut();
+          setIsLoginVisible(false);
+        }}
       />
     </Modal>
   );

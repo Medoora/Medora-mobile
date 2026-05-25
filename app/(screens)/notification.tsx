@@ -1,16 +1,17 @@
 import DashboardWrapper from '@/components/wrapper/dashboard-wrapper';
 import { useAuth } from '@/context/auth-context';
+import { useAppTheme } from '@/context/theme-context';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useFocusEffect } from 'expo-router';
 import React, { useCallback, useState } from 'react';
 
 import {
-    FlatList,
-    RefreshControl,
-    Text,
-    TouchableOpacity,
-    View
+  FlatList,
+  RefreshControl,
+  Text,
+  TouchableOpacity,
+  View
 } from 'react-native';
 import { Swipeable } from 'react-native-gesture-handler';
 
@@ -35,7 +36,7 @@ interface NotificationItem {
   reminderData?: any;
 }
 
-// Swipeable Notification Item Component
+// Swipeable Notification Item Component with theme support
 const SwipeableNotification = ({
   item,
   onPress,
@@ -45,6 +46,13 @@ const SwipeableNotification = ({
   onPress: () => void;
   onDelete: () => void;
 }) => {
+  const { isDark } = useAppTheme();
+  const bgColor = isDark ? 'bg-black' : 'bg-white';
+  const borderColor = isDark ? 'border-white/10' : 'border-gray-200';
+  const textPrimary = isDark ? 'text-white' : 'text-black';
+  const textSecondary = isDark ? 'text-neutral-400' : 'text-gray-500';
+  const iconColor = isDark ? '#737373' : '#9ca3af';
+
   const renderRightActions = () => {
     return (
       <View className="flex-1 bg-red-500 justify-center items-end pr-6">
@@ -60,7 +68,7 @@ const SwipeableNotification = ({
       case 'alert':
         return <Ionicons name="alert-circle-outline" size={20} color="#ef4444" />;
       default:
-        return <Ionicons name="information-circle-outline" size={20} color="#737373" />;
+        return <Ionicons name="information-circle-outline" size={20} color={iconColor} />;
     }
   };
 
@@ -83,35 +91,35 @@ const SwipeableNotification = ({
   return (
     <Swipeable
       renderRightActions={renderRightActions}
-      onSwipeableOpen={onDelete} // ✅ delete on full swipe
+      onSwipeableOpen={onDelete}
       friction={2}
       rightThreshold={40}
     >
       <TouchableOpacity
         activeOpacity={0.7}
         onPress={onPress}
-        className="px-4 py-5 border-b border-white/10  bg-black"
+        className={`px-4 py-5 border-b ${borderColor} ${bgColor}`}
       >
-        <View className="flex-row    items-center">
+        <View className="flex-row items-center">
           {/* Icon */}
-          <View className="w-10 h-10  items-center justify-center">
+          <View className="w-10 h-10 items-center justify-center">
             {getNotificationIcon(item.type)}
           </View>
 
           {/* Content */}
           <View className="flex-1 ml-3">
             <View className="flex-row justify-between">
-              <Text className="text-white text-sm font-medium">
+              <Text className={`${textPrimary} text-sm font-medium`}>
                 {item.title}
               </Text>
 
-              <Text className="text-neutral-500 text-xs">
+              <Text className={`${textSecondary} text-xs`}>
                 {formatDate(item.timestamp)}
               </Text>
             </View>
 
             <Text
-              className="text-neutral-400 text-xs mt-1"
+              className={`${textSecondary} text-xs mt-1`}
               numberOfLines={2}
             >
               {item.message}
@@ -122,29 +130,37 @@ const SwipeableNotification = ({
     </Swipeable>
   );
 };
+
 const NotificationScreen = () => {
+  const { user } = useAuth();
+  const { isDark } = useAppTheme();
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const { user } = useAuth();
 
- const fetchNotifications = useCallback(async () => {
+  // Theme-aware colors
+  const bgColor = isDark ? 'bg-black' : 'bg-white';
+  const textPrimary = isDark ? 'text-white' : 'text-black';
+  const textSecondary = isDark ? 'text-neutral-400' : 'text-gray-500';
+  const textTertiary = isDark ? 'text-neutral-500' : 'text-gray-400';
+  const iconBg = isDark ? 'bg-neutral-800' : 'bg-gray-200';
+  const skeletonBg = isDark ? 'bg-neutral-800' : 'bg-gray-200';
+  const deleteText = isDark ? 'text-red-500' : 'text-red-600';
+
+  const fetchNotifications = useCallback(async () => {
     if (!user?.uid) return;
 
     try {
       setLoading(true);
       
-      // Get notifications from AsyncStorage only
       const stored = await AsyncStorage.getItem('app_notifications');
       let storedNotifications: NotificationItem[] = stored ? JSON.parse(stored) : [];
       
-      // Convert string dates back to Date objects
       storedNotifications = storedNotifications.map((n: any) => ({
         ...n,
         timestamp: new Date(n.timestamp),
       }));
       
-      // Sort by timestamp (newest first)
       storedNotifications.sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime());
       
       setNotifications(storedNotifications);
@@ -170,11 +186,9 @@ const NotificationScreen = () => {
 
   const handleDeleteNotification = async (id: string) => {
     try {
-      // Remove from state
       const updated = notifications.filter(n => n.id !== id);
       setNotifications(updated);
       
-      // Permanently remove from AsyncStorage
       const stored = await AsyncStorage.getItem('app_notifications');
       let storedNotifications: NotificationItem[] = stored ? JSON.parse(stored) : [];
       storedNotifications = storedNotifications.filter(n => n.id !== id);
@@ -187,7 +201,6 @@ const NotificationScreen = () => {
   const handleClearAll = async () => {
     try {
       setNotifications([]);
-      // Permanently clear all from AsyncStorage
       await AsyncStorage.setItem('app_notifications', JSON.stringify([]));
     } catch (error) {
       console.error('Error clearing all:', error);
@@ -195,7 +208,6 @@ const NotificationScreen = () => {
   };
 
   const handleNotificationPress = (item: NotificationItem) => {
-    // Optional: Show detailed modal or navigate
     console.log('Notification pressed:', item.title);
   };
 
@@ -209,13 +221,13 @@ const NotificationScreen = () => {
 
   const EmptyState = () => (
     <View className="flex-1 items-center justify-center py-20">
-      <View className="w-20 h-20 bg-neutral-800 rounded-full items-center justify-center mb-4">
-        <Ionicons name="notifications-off-outline" size={32} color="#737373" />
+      <View className={`w-20 h-20 ${iconBg} rounded-full items-center justify-center mb-4`}>
+        <Ionicons name="notifications-off-outline" size={32} color={iconBg === 'bg-neutral-800' ? '#737373' : '#9ca3af'} />
       </View>
-      <Text className="text-neutral-400 text-lg font-medium">
+      <Text className={`${textSecondary} text-lg font-medium`}>
         No notifications
       </Text>
-      <Text className="text-neutral-500 text-sm text-center mt-2 px-8">
+      <Text className={`${textTertiary} text-sm text-center mt-2 px-8`}>
         When you receive reminders, they will appear here
       </Text>
     </View>
@@ -225,10 +237,10 @@ const NotificationScreen = () => {
     <View className="px-4">
       {[1, 2, 3, 4].map((i) => (
         <View key={i} className="flex-row py-3 mb-3">
-          <View className="w-10 h-10 bg-neutral-800 rounded-full" />
+          <View className={`w-10 h-10 ${skeletonBg} rounded-full`} />
           <View className="flex-1 ml-3">
-            <View className="bg-neutral-800 rounded h-4 w-32 mb-2" />
-            <View className="bg-neutral-800 rounded h-3 w-48" />
+            <View className={`${skeletonBg} rounded h-4 w-32 mb-2`} />
+            <View className={`${skeletonBg} rounded h-3 w-48`} />
           </View>
         </View>
       ))}
@@ -250,7 +262,7 @@ const NotificationScreen = () => {
         keyExtractor={(item) => item.id}
         renderItem={renderNotification}
         showsVerticalScrollIndicator={false}
-        className="flex-1 bg-black"
+        className={`flex-1 ${bgColor}`}
         refreshControl={
           <RefreshControl
             refreshing={refreshing}
@@ -264,7 +276,7 @@ const NotificationScreen = () => {
           notifications.length > 0 ? (
             <View className="flex-row justify-end px-4 py-3 mb-2">
               <TouchableOpacity onPress={handleClearAll}>
-                <Text className="text-red-500 text-sm font-medium">Clear all</Text>
+                <Text className={`${deleteText} text-sm font-medium`}>Clear all</Text>
               </TouchableOpacity>
             </View>
           ) : null

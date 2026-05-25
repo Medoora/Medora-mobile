@@ -89,9 +89,9 @@ export default function WelcomeScreen() {
               alignItems: 'center',
             }}
           >
-            <FontAwesome name="apple" size={22} color="#000" />
+            <FontAwesome name="rocket" size={22} color="#000" />
             <Text style={{ marginLeft: 10, fontSize: 16 }}>
-              Connect to Apple
+               Get Started
             </Text>
           </TouchableOpacity>
 

@@ -1,84 +1,104 @@
 import DashboardWrapper from '@/components/wrapper/dashboard-wrapper';
 import { getTrashedDocuments, permanentlyDeleteDocument, restoreDocument } from '@/config/firebase/services/dashboard/documents';
 import { useAuth } from '@/context/auth-context';
+import { useAppTheme } from '@/context/theme-context';
 import { Ionicons } from '@expo/vector-icons';
 import { router, useFocusEffect } from 'expo-router';
 import { useCallback, useRef, useState } from 'react';
 import { ActivityIndicator, Animated, Modal, RefreshControl, Text, TextInput, TouchableOpacity, View } from 'react-native';
 
-// Custom Dialog Component
-const CustomDialog = ({ visible, title, message, onConfirm, onCancel, loading, confirmText = 'Delete', confirmColor = '#ef4444' }: any) => (
-  <Modal
-    visible={visible}
-    transparent={true}
-    animationType="fade"
-    onRequestClose={onCancel}
-  >
-    <View className="flex-1 bg-black/70 justify-center items-center px-6">
-      <View className="bg-neutral-900 rounded-2xl w-full max-w-sm p-6">
-        <Text className="text-white text-lg font-semibold mb-2">{title}</Text>
-        <Text className="text-neutral-400 text-sm mb-6">{message}</Text>
-        <View className="flex-row gap-3">
-          <TouchableOpacity
-            onPress={onCancel}
-            className="flex-1 py-3 rounded-xl bg-neutral-800"
-          >
-            <Text className="text-neutral-400 text-center font-medium">Cancel</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            onPress={onConfirm}
-            disabled={loading}
-            className={`flex-1 py-3 rounded-xl ${loading ? 'bg-red-500/50' : 'bg-red-500'}`}
-          >
-            {loading ? (
-              <ActivityIndicator size="small" color="white" />
-            ) : (
-              <Text className="text-white text-center font-medium">{confirmText}</Text>
-            )}
-          </TouchableOpacity>
+// Custom Dialog Component with theme support
+const CustomDialog = ({ visible, title, message, onConfirm, onCancel, loading, confirmText = 'Delete', confirmColor = '#ef4444' }: any) => {
+  const { isDark } = useAppTheme();
+  const bgColor = isDark ? 'bg-neutral-900' : 'bg-white';
+  const textColor = isDark ? 'text-white' : 'text-black';
+  const textSecondary = isDark ? 'text-neutral-400' : 'text-gray-500';
+  const buttonBg = isDark ? 'bg-neutral-800' : 'bg-gray-200';
+  
+  return (
+    <Modal
+      visible={visible}
+      transparent={true}
+      animationType="fade"
+      onRequestClose={onCancel}
+    >
+      <View className="flex-1 bg-black/70 justify-center items-center px-6">
+        <View className={`${bgColor} rounded-2xl w-full max-w-sm p-6`}>
+          <Text className={`${textColor} text-lg font-semibold mb-2`}>{title}</Text>
+          <Text className={`${textSecondary} text-sm mb-6`}>{message}</Text>
+          <View className="flex-row gap-3">
+            <TouchableOpacity
+              onPress={onCancel}
+              className={`flex-1 py-3 rounded-xl ${buttonBg}`}
+            >
+              <Text className={`${textSecondary} text-center font-medium`}>Cancel</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              onPress={onConfirm}
+              disabled={loading}
+              className={`flex-1 py-3 rounded-xl ${loading ? 'bg-red-500/50' : 'bg-red-500'}`}
+            >
+              {loading ? (
+                <ActivityIndicator size="small" color="white" />
+              ) : (
+                <Text className="text-white text-center font-medium">{confirmText}</Text>
+              )}
+            </TouchableOpacity>
+          </View>
         </View>
       </View>
-    </View>
-  </Modal>
-);
+    </Modal>
+  );
+};
 
-// Custom Restore Dialog
-const RestoreDialog = ({ visible, title, message, onConfirm, onCancel, loading }: any) => (
-  <Modal
-    visible={visible}
-    transparent={true}
-    animationType="fade"
-    onRequestClose={onCancel}
-  >
-    <View className="flex-1 bg-black/70 justify-center items-center px-6">
-      <View className="bg-neutral-900 rounded-2xl w-full max-w-sm p-6">
-        <Text className="text-white text-lg font-semibold mb-2">{title}</Text>
-        <Text className="text-neutral-400 text-sm mb-6">{message}</Text>
-        <View className="flex-row gap-3">
-          <TouchableOpacity
-            onPress={onCancel}
-            className="flex-1 py-3 rounded-xl bg-neutral-800"
-          >
-            <Text className="text-neutral-400 text-center font-medium">Cancel</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            onPress={onConfirm}
-            disabled={loading}
-            className={`flex-1 py-3 rounded-xl ${loading ? 'bg-blue-500/50' : 'bg-blue-500'}`}
-          >
-            {loading ? (
-              <ActivityIndicator size="small" color="white" />
-            ) : (
-              <Text className="text-white text-center font-medium">Restore</Text>
-            )}
-          </TouchableOpacity>
+// Custom Restore Dialog with theme support
+const RestoreDialog = ({ visible, title, message, onConfirm, onCancel, loading }: any) => {
+  const { isDark } = useAppTheme();
+  const bgColor = isDark ? 'bg-neutral-900' : 'bg-white';
+  const textColor = isDark ? 'text-white' : 'text-black';
+  const textSecondary = isDark ? 'text-neutral-400' : 'text-gray-500';
+  const buttonBg = isDark ? 'bg-neutral-800' : 'bg-gray-200';
+  
+  return (
+    <Modal
+      visible={visible}
+      transparent={true}
+      animationType="fade"
+      onRequestClose={onCancel}
+    >
+      <View className="flex-1 bg-black/70 justify-center items-center px-6">
+        <View className={`${bgColor} rounded-2xl w-full max-w-sm p-6`}>
+          <Text className={`${textColor} text-lg font-semibold mb-2`}>{title}</Text>
+          <Text className={`${textSecondary} text-sm mb-6`}>{message}</Text>
+          <View className="flex-row gap-3">
+            <TouchableOpacity
+              onPress={onCancel}
+              className={`flex-1 py-3 rounded-xl ${buttonBg}`}
+            >
+              <Text className={`${textSecondary} text-center font-medium`}>Cancel</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              onPress={onConfirm}
+              disabled={loading}
+              className={`flex-1 py-3 rounded-xl ${loading ? 'bg-blue-500/50' : 'bg-blue-500'}`}
+            >
+              {loading ? (
+                <ActivityIndicator size="small" color="white" />
+              ) : (
+                <Text className="text-white text-center font-medium">Restore</Text>
+              )}
+            </TouchableOpacity>
+          </View>
         </View>
       </View>
-    </View>
-  </Modal>
-);
+    </Modal>
+  );
+};
 
 export default function TrashScreen() {
+  const { user } = useAuth();
+  const { isDark } = useAppTheme();
+  
   const [searchQuery, setSearchQuery] = useState('');
   const [deletedFiles, setDeletedFiles] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -89,7 +109,19 @@ export default function TrashScreen() {
   const [isDeleting, setIsDeleting] = useState(false);
   const [isRestoring, setIsRestoring] = useState(false);
   const scrollY = useRef(new Animated.Value(0)).current;
-  const { user } = useAuth();
+
+  // Theme-aware colors
+  const bgColor = isDark ? 'bg-black' : 'bg-white';
+  const cardBg = isDark ? 'bg-neutral-900' : 'bg-gray-100';
+  const borderColor = isDark ? 'border-neutral-800' : 'border-gray-200';
+  const textPrimary = isDark ? 'text-white' : 'text-black';
+  const textSecondary = isDark ? 'text-neutral-400' : 'text-gray-500';
+  const textTertiary = isDark ? 'text-neutral-500' : 'text-gray-400';
+  const inputBg = isDark ? 'bg-neutral-900' : 'bg-gray-100';
+  const iconColor = isDark ? '#737373' : '#9ca3af';
+  const skeletonBg = isDark ? 'bg-neutral-800' : 'bg-gray-200';
+  const skeletonInner = isDark ? 'bg-neutral-700' : 'bg-gray-300';
+  const emptyIconColor = isDark ? '#4b5563' : '#9ca3af';
 
   // Fetch trashed documents from Firebase
   const fetchTrashedDocuments = useCallback(async (showLoading = true) => {
@@ -143,12 +175,9 @@ export default function TrashScreen() {
     setIsRestoring(true);
     try {
       await restoreDocument(selectedFile.id);
-      // Immediately remove from local state
       setDeletedFiles(prev => prev.filter(f => f.id !== selectedFile.id));
       setRestoreDialogVisible(false);
       setSelectedFile(null);
-      // Show success message
-      console.log('File restored successfully');
     } catch (error) {
       console.error('Error restoring file:', error);
     } finally {
@@ -167,7 +196,6 @@ export default function TrashScreen() {
     setIsDeleting(true);
     try {
       await permanentlyDeleteDocument(selectedFile.id);
-      // Immediately remove from local state
       setDeletedFiles(prev => prev.filter(f => f.id !== selectedFile.id));
       setDialogVisible(false);
       setSelectedFile(null);
@@ -187,15 +215,10 @@ export default function TrashScreen() {
   const confirmDeleteAll = async () => {
     setIsDeleting(true);
     try {
-      // Show loading state
       setLoading(true);
-      
-      // Delete all files
       for (const file of deletedFiles) {
         await permanentlyDeleteDocument(file.id);
       }
-      
-      // Clear local state
       setDeletedFiles([]);
       setDialogVisible(false);
       setSelectedFile(null);
@@ -213,7 +236,7 @@ export default function TrashScreen() {
   );
 
   const FileCard = ({ file }: { file: any }) => (
-    <View className="flex-row items-center p-4 bg-neutral-900 rounded-xl mb-3 border border-neutral-800">
+    <View className={`flex-row items-center p-4 ${cardBg} rounded-xl mb-3 border ${borderColor}`}>
       <View className="w-10 h-10 bg-red-500/10 rounded-lg items-center justify-center">
         <Ionicons 
           name={file.fileInfo?.fileTypeCategory === 'image' ? 'image-outline' : 'document-text-outline'} 
@@ -222,21 +245,21 @@ export default function TrashScreen() {
         />
       </View>
       <View className="flex-1 ml-3">
-        <Text className="text-white font-medium text-sm" numberOfLines={1}>
+        <Text className={`${textPrimary} font-medium text-sm`} numberOfLines={1}>
           {file.documentName}
         </Text>
         <View className="flex-row items-center mt-1 flex-wrap">
-          <Text className="text-neutral-500 text-xs">
+          <Text className={`${textTertiary} text-xs`}>
             {formatFileSize(file.cloudinary?.bytes || 0)}
           </Text>
           <Text className="text-neutral-600 text-xs mx-1">•</Text>
-          <Text className="text-neutral-500 text-xs">
+          <Text className={`${textTertiary} text-xs`}>
             Deleted {formatDate(file.trashedAt || file.updatedAt)}
           </Text>
           {file.categoryLabel && (
             <>
               <Text className="text-neutral-600 text-xs mx-1">•</Text>
-              <Text className="text-neutral-500 text-xs">
+              <Text className={`${textTertiary} text-xs`}>
                 {file.categoryLabel}
               </Text>
             </>
@@ -260,33 +283,33 @@ export default function TrashScreen() {
     </View>
   );
 
-  // Skeleton Loader
+  // Skeleton Loader with theme support
   const SkeletonLoader = () => (
     <View className="pb-20 px-2 pt-2">
-      <View className="bg-neutral-800 rounded-xl h-12 mb-4" />
+      <View className={`${skeletonBg} rounded-xl h-12 mb-4`} />
       <View className="flex-row justify-between items-center mb-4 pb-2">
-        <View className="bg-neutral-800 rounded h-5 w-32" />
-        <View className="bg-neutral-800 rounded h-8 w-20" />
+        <View className={`${skeletonBg} rounded h-5 w-32`} />
+        <View className={`${skeletonBg} rounded h-8 w-20`} />
       </View>
       {[1, 2, 3].map((i) => (
-        <View key={i} className="flex-row items-center p-4 bg-neutral-800/50 rounded-xl mb-3">
-          <View className="w-10 h-10 bg-neutral-700 rounded-lg" />
+        <View key={i} className={`flex-row items-center p-4 ${skeletonBg} rounded-xl mb-3`}>
+          <View className={`w-10 h-10 ${skeletonInner} rounded-lg`} />
           <View className="flex-1 ml-3">
-            <View className="bg-neutral-700 rounded h-4 w-40 mb-2" />
-            <View className="bg-neutral-700 rounded h-3 w-32" />
+            <View className={`${skeletonInner} rounded h-4 w-40 mb-2`} />
+            <View className={`${skeletonInner} rounded h-3 w-32`} />
           </View>
-          <View className="w-16 h-8 bg-neutral-700 rounded-lg" />
+          <View className={`w-16 h-8 ${skeletonInner} rounded-lg`} />
         </View>
       ))}
     </View>
   );
 
-  // Empty State Component
+  // Empty State Component with theme support
   const EmptyState = () => (
     <View className="items-center py-16">
-      <Ionicons name="trash-outline" size={64} color="#4b5563" />
-      <Text className="text-neutral-400 text-lg font-medium mt-4">Trash is empty</Text>
-      <Text className="text-neutral-500 text-center mt-2">
+      <Ionicons name="trash-outline" size={64} color={emptyIconColor} />
+      <Text className={`${textSecondary} text-lg font-medium mt-4`}>Trash is empty</Text>
+      <Text className={`${textTertiary} text-center mt-2`}>
         {searchQuery ? 'No matching files found' : 'Deleted files will appear here'}
       </Text>
       <TouchableOpacity 
@@ -299,117 +322,116 @@ export default function TrashScreen() {
   );
 
   return (
-   <DashboardWrapper title='Trash'>
-     <>
-      <Animated.ScrollView 
-        showsVerticalScrollIndicator={false}
-        scrollEventThrottle={16}
-        onScroll={Animated.event(
-          [{ nativeEvent: { contentOffset: { y: scrollY } } }],
-          { useNativeDriver: true }
-        )}
-        className="flex-1 bg-black"
-        refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#3b82f6" />
-        }
-      >
-        <View className="pb-20 min-h-screen px-2 pt-2">
-          {/* Search Bar */}
-          <View className="flex-row items-center bg-neutral-900 rounded-xl px-4 py-2 mb-4 border border-neutral-800">
-            <Ionicons name="search-outline" size={20} color="#737373" />
-            <TextInput
-              className="flex-1 text-white ml-2 py-2"
-              placeholder="Search deleted files..."
-              placeholderTextColor="#737373"
-              value={searchQuery}
-              onChangeText={setSearchQuery}
-            />
-            {searchQuery.length > 0 && (
-              <TouchableOpacity onPress={() => setSearchQuery('')}>
-                <Ionicons name="close-circle" size={18} color="#737373" />
-              </TouchableOpacity>
+    <DashboardWrapper title='Trash'>
+      <>
+        <Animated.ScrollView 
+          showsVerticalScrollIndicator={false}
+          scrollEventThrottle={16}
+          onScroll={Animated.event(
+            [{ nativeEvent: { contentOffset: { y: scrollY } } }],
+            { useNativeDriver: true }
+          )}
+          className={`flex-1 ${bgColor}`}
+          refreshControl={
+            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#3b82f6" />
+          }
+        >
+          <View className={`pb-20 min-h-screen px-2 pt-2 ${bgColor}`}>
+            {/* Search Bar */}
+            <View className={`flex-row items-center ${inputBg} rounded-xl px-4 py-2 mb-4 border ${borderColor}`}>
+              <Ionicons name="search-outline" size={20} color={iconColor} />
+              <TextInput
+                className={`flex-1 ${textPrimary} ml-2 py-2`}
+                placeholder="Search deleted files..."
+                placeholderTextColor={iconColor}
+                value={searchQuery}
+                onChangeText={setSearchQuery}
+              />
+              {searchQuery.length > 0 && (
+                <TouchableOpacity onPress={() => setSearchQuery('')}>
+                  <Ionicons name="close-circle" size={18} color={iconColor} />
+                </TouchableOpacity>
+              )}
+            </View>
+
+            {/* Info Note */}
+            {deletedFiles.length > 0 && (
+              <View className="flex-row items-center gap-2 py-2 mb-2">
+                <Ionicons name="information-circle-outline" size={16} color={iconColor} />
+                <Text className={`${textTertiary} text-xs flex-1`}>
+                  Files in trash are automatically deleted after 30 days
+                </Text>
+              </View>
+            )}
+
+            {(loading || refreshing || isDeleting || isRestoring) ? (
+              <SkeletonLoader />
+            ) : (
+              <>
+                {/* Header with Delete All Button */}
+                <View className={`flex-row justify-between items-center mb-4 pb-2 border-b ${borderColor}`}>
+                  <View className="flex-row items-center gap-2">
+                    <Ionicons name="trash-outline" size={20} color="#ef4444" />
+                    <Text className={`${textSecondary} text-sm`}>
+                      {filteredFiles.length} {filteredFiles.length === 1 ? 'file' : 'files'} in trash
+                    </Text>
+                  </View>
+                  
+                  {deletedFiles.length > 0 && (
+                    <TouchableOpacity 
+                      onPress={handleDeleteAll}
+                      className="flex-row items-center px-3 py-1.5 rounded-lg bg-red-500/10"
+                    >
+                      <Ionicons name="trash-outline" size={14} color="#ef4444" />
+                      <Text className="text-red-500 text-xs ml-1">Delete All</Text>
+                    </TouchableOpacity>
+                  )}
+                </View>
+
+                {/* Files List */}
+                {filteredFiles.length > 0 ? (
+                  filteredFiles.map((file) => (
+                    <FileCard key={file.id} file={file} />
+                  ))
+                ) : (
+                  <EmptyState />
+                )}
+              </>
             )}
           </View>
+        </Animated.ScrollView>
 
-          {/* Info Note */}
-          {deletedFiles.length > 0 && (
-            <View className="flex-row items-center gap-2 py-2 mb-2">
-              <Ionicons name="information-circle-outline" size={16} color="#737373" />
-              <Text className="text-neutral-500 text-xs flex-1">
-                Files in trash are automatically deleted after 30 days
-              </Text>
-            </View>
-          )}
+        {/* Custom Delete Dialog */}
+        <CustomDialog
+          visible={dialogVisible}
+          title={selectedFile?.all ? "Delete All Files" : "Permanently Delete"}
+          message={selectedFile?.all 
+            ? `Are you sure you want to permanently delete all ${selectedFile.count} files? This action cannot be undone.`
+            : `Are you sure you want to permanently delete "${selectedFile?.documentName}"? This action cannot be undone.`
+          }
+          onConfirm={selectedFile?.all ? confirmDeleteAll : confirmDelete}
+          onCancel={() => {
+            setDialogVisible(false);
+            setSelectedFile(null);
+          }}
+          loading={isDeleting}
+          confirmText="Delete"
+          confirmColor="#ef4444"
+        />
 
-          {/* Loading State - Shows skeleton when loading or during delete/restore actions */}
-          {(loading || refreshing || isDeleting || isRestoring) ? (
-            <SkeletonLoader />
-          ) : (
-            <>
-              {/* Header with Delete All Button */}
-              <View className="flex-row justify-between items-center mb-4 pb-2 border-b border-neutral-800">
-                <View className="flex-row items-center gap-2">
-                  <Ionicons name="trash-outline" size={20} color="#ef4444" />
-                  <Text className="text-neutral-400 text-sm">
-                    {filteredFiles.length} {filteredFiles.length === 1 ? 'file' : 'files'} in trash
-                  </Text>
-                </View>
-                
-                {deletedFiles.length > 0 && (
-                  <TouchableOpacity 
-                    onPress={handleDeleteAll}
-                    className="flex-row items-center px-3 py-1.5 rounded-lg bg-red-500/10"
-                  >
-                    <Ionicons name="trash-outline" size={14} color="#ef4444" />
-                    <Text className="text-red-500 text-xs ml-1">Delete All</Text>
-                  </TouchableOpacity>
-                )}
-              </View>
-
-              {/* Files List */}
-              {filteredFiles.length > 0 ? (
-                filteredFiles.map((file) => (
-                  <FileCard key={file.id} file={file} />
-                ))
-              ) : (
-                <EmptyState />
-              )}
-            </>
-          )}
-        </View>
-      </Animated.ScrollView>
-
-      {/* Custom Delete Dialog */}
-      <CustomDialog
-        visible={dialogVisible}
-        title={selectedFile?.all ? "Delete All Files" : "Permanently Delete"}
-        message={selectedFile?.all 
-          ? `Are you sure you want to permanently delete all ${selectedFile.count} files? This action cannot be undone.`
-          : `Are you sure you want to permanently delete "${selectedFile?.documentName}"? This action cannot be undone.`
-        }
-        onConfirm={selectedFile?.all ? confirmDeleteAll : confirmDelete}
-        onCancel={() => {
-          setDialogVisible(false);
-          setSelectedFile(null);
-        }}
-        loading={isDeleting}
-        confirmText="Delete"
-        confirmColor="#ef4444"
-      />
-
-      {/* Custom Restore Dialog */}
-      <RestoreDialog
-        visible={restoreDialogVisible}
-        title="Restore File"
-        message={`Are you sure you want to restore "${selectedFile?.documentName}"?`}
-        onConfirm={confirmRestore}
-        onCancel={() => {
-          setRestoreDialogVisible(false);
-          setSelectedFile(null);
-        }}
-        loading={isRestoring}
-      />
-    </>
-   </DashboardWrapper>
+        {/* Custom Restore Dialog */}
+        <RestoreDialog
+          visible={restoreDialogVisible}
+          title="Restore File"
+          message={`Are you sure you want to restore "${selectedFile?.documentName}"?`}
+          onConfirm={confirmRestore}
+          onCancel={() => {
+            setRestoreDialogVisible(false);
+            setSelectedFile(null);
+          }}
+          loading={isRestoring}
+        />
+      </>
+    </DashboardWrapper>
   );
 }

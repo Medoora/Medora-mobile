@@ -2,6 +2,7 @@ import { GoogleSignInButton } from '@/components/buttons/google-button';
 import ForgotPassword from '@/components/modal/forgot-pass/forgot-password';
 import { directLogin, resetPassword } from '@/config/firebase/services/auth/auth';
 import { useAuth } from '@/context/auth-context';
+import { useAppTheme } from '@/context/theme-context';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { router } from 'expo-router';
@@ -11,16 +12,34 @@ import { ActivityIndicator, Alert, Image, ScrollView, Text, TextInput, Touchable
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 export default function SignIn() {
+  const { isDark } = useAppTheme();
   const [formData, setFormData] = useState({
     email: '',
     password: '',
   });
-  const {user,hasCompletedOnboarding} = useAuth()
+  const { user, hasCompletedOnboarding } = useAuth();
   const [passwordShow, setPasswordShow] = useState(false);
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
- const [forgotModal, setForgotModal] = useState(false)
+  const [forgotModal, setForgotModal] = useState(false);
+
+  // Theme-aware colors
+  const bgColor = isDark ? 'bg-[#0A0A0A]' : 'bg-white';
+  const cardBg = isDark ? 'bg-neutral-900' : 'bg-gray-100';
+  const textPrimary = isDark ? 'text-white' : 'text-black';
+  const textSecondary = isDark ? 'text-zinc-300' : 'text-gray-600';
+  const textTertiary = isDark ? 'text-zinc-400' : 'text-gray-500';
+  const inputBg = isDark ? 'bg-neutral-900' : 'bg-gray-100';
+  const inputText = isDark ? 'text-zinc-100' : 'text-black';
+  const placeholderColor = isDark ? '#525252' : '#9ca3af';
+  const borderColor = isDark ? 'border-zinc-800' : 'border-gray-200';
+  const dividerBg = isDark ? 'bg-zinc-800' : 'bg-gray-300';
+  const errorBg = isDark ? 'bg-red-500/10' : 'bg-red-50';
+  const errorBorder = isDark ? 'border-red-500/20' : 'border-red-200';
+  const errorText = isDark ? 'text-red-400' : 'text-red-600';
+  const linkText = isDark ? 'text-blue-400' : 'text-blue-600';
+
   const handleInputChange = (field: string, value: string) => {
     setFormData(prev => ({
       ...prev,
@@ -51,147 +70,63 @@ export default function SignIn() {
     return true;
   };
 
- const handleSignIn = async () => {
-  if (!validateForm()) return;
-  
-  setLoading(true);
-  setError(null);
-  
-  try {
-    console.log("🔐 Attempting login for:", formData.email);
-    const result = await directLogin(formData.email, formData.password);
+  const handleSignIn = async () => {
+    if (!validateForm()) return;
     
-    if (result.success) {
-      console.log("✅ Login successful for:", formData.email);
-      
-      // Store user data in AsyncStorage with onboarding status
-      if (result.user) {
-        await AsyncStorage.setItem('user', JSON.stringify({
-          uid: result.user.uid,
-          email: result.user.email,
-          displayName: result.user.displayName,
-          emailVerified: result.user.emailVerified,
-          hasCompletedOnboarding: !result.needsOnboarding // Store onboarding status
-        }));
-      }
-      
-      // Clear form
-      setFormData({ email: '', password: '' });
-      
-      // Show success message (optional)
-     /*  Alert.alert(
-        "Success",
-        "Logged in successfully!",
-        [{ text: "OK" }]
-      ); */
-      
-      // DO NOT navigate here - let the AuthContext handle navigation
-      // The context will automatically redirect based on user and onboarding status
-      
-    } else {
-      console.log("❌ Login failed:", result.error);
-      
-      // Handle specific error messages
-      if (result.error?.includes('invalid-credential') || result.error?.includes('Invalid email or password')) {
-        setError("Invalid email or password. Please try again.");
-      } else if (result.error?.includes('user-not-found') || result.error?.includes('No account found')) {
-        setError("No account found with this email. Please sign up first.");
-      } else if (result.error?.includes('network')) {
-        setError("Network error. Please check your connection.");
-      } else {
-        setError(result.error || "Sign in failed. Please try again.");
-      }
-    }
-  } catch (error: any) {
-    console.error("❌ Login error:", error);
-    setError("An unexpected error occurred. Please try again.");
-  } finally {
-    setLoading(false);
-  }
-};
-/*   const handleGoogleSignIn = async () => {
-    setGoogleLoading(true);
+    setLoading(true);
     setError(null);
     
     try {
-      console.log("🔐 Attempting Google Sign-In");
-      
-      // Dynamically import Google Sign-In
-      let GoogleSignin;
-      try {
-        const googleSignIn = require('@react-native-google-signin/google-signin');
-        GoogleSignin = googleSignIn.GoogleSignin;
-        
-        // Configure Google Sign-In
-        GoogleSignin.configure({
-          webClientId: process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID,
-          iosClientId: process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID,
-        });
-      } catch (error) {
-        console.log("⚠️ Google Sign-In module not available");
-        setError("Google Sign-In is not configured. Please use email/password.");
-        setGoogleLoading(false);
-        return;
-      }
-      
-      const result = await loginWithGoogle(GoogleSignin);
+      console.log("🔐 Attempting login for:", formData.email);
+      const result = await directLogin(formData.email, formData.password);
       
       if (result.success) {
-        console.log("✅ Google Sign-In successful");
+        console.log("✅ Login successful for:", formData.email);
         
-        // Store user data in AsyncStorage
         if (result.user) {
           await AsyncStorage.setItem('user', JSON.stringify({
             uid: result.user.uid,
             email: result.user.email,
             displayName: result.user.displayName,
-            photoURL: result.user.photoURL,
-            emailVerified: result.user.emailVerified
+            emailVerified: result.user.emailVerified,
+            hasCompletedOnboarding: !result.needsOnboarding
           }));
         }
         
-        // Navigate based on onboarding status
-        if (result.needsOnboarding) {
-          console.log("📱 Google user needs onboarding (first app login)");
-          router.replace('/(dashboard)/dashboard/dashboard');
-        } else {
-          console.log("📱 Google user has completed onboarding, going to dashboard");
-          router.replace('/(dashboard)/dashboard/dashboard');
-        }
+        setFormData({ email: '', password: '' });
+        
       } else {
-        console.log("❌ Google Sign-In failed:", result.error);
-        setError(result.error || "Google sign in failed. Please try again.");
+        console.log("❌ Login failed:", result.error);
+        
+        if (result.error?.includes('invalid-credential') || result.error?.includes('Invalid email or password')) {
+          setError("Invalid email or password. Please try again.");
+        } else if (result.error?.includes('user-not-found') || result.error?.includes('No account found')) {
+          setError("No account found with this email. Please sign up first.");
+        } else if (result.error?.includes('network')) {
+          setError("Network error. Please check your connection.");
+        } else {
+          setError(result.error || "Sign in failed. Please try again.");
+        }
       }
     } catch (error: any) {
-      console.error("Google Sign-In Error:", error);
-      
-      // Handle specific Google Sign-In errors
-      if (error.code === 'SIGN_IN_CANCELLED') {
-        setError("Sign-in cancelled");
-      } else if (error.code === 'IN_PROGRESS') {
-        setError("Sign-in already in progress");
-      } else if (error.code === 'PLAY_SERVICES_NOT_AVAILABLE') {
-        setError("Google Play Services not available");
-      } else {
-        setError(error.message || "Google sign in failed. Please try again.");
-      }
+      console.error("❌ Login error:", error);
+      setError("An unexpected error occurred. Please try again.");
     } finally {
-      setGoogleLoading(false);
+      setLoading(false);
     }
   };
- */
+
   const handleGoogleSuccess = async () => {
-      console.log('User signed in:', user?.email);
-       // Navigate based on onboarding status
+    console.log('User signed in:', user?.email);
     if (!hasCompletedOnboarding) {
       router.push('/(onboarding)/onboarding');
     } else {
       router.replace('/(dashboard)/dashboard/(tabs)');
     }
-  }
-   const handleGoogleError = (error: string) => {
+  };
+
+  const handleGoogleError = (error: string) => {
     console.error('Google sign-in error:', error);
-    // Show error in UI or toast notification
   };
 
   const handleForgotPassword = async () => {
@@ -204,7 +139,6 @@ export default function SignIn() {
       return;
     }
     
-    // Validate email format
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(formData.email)) {
       Alert.alert(
@@ -244,183 +178,153 @@ export default function SignIn() {
 
   return (
     <>
-    <View className="flex-1 bg-[#0A0A0A]">
-      <StatusBar style="light" />
-      
-      <SafeAreaView className="flex-1">
-        <ScrollView 
-          showsVerticalScrollIndicator={false}
-          contentContainerStyle={{ flexGrow: 1 }}
-          keyboardShouldPersistTaps="handled"
-        >
-          <View className="flex-1 px-6 pt-8 pb-12">
-            
-            {/* Logo */}
-            <View className="items-center ">
-              <Image
-                source={require('@/assets/logo/logo.png')}
-                className="w-32 h-32"
-                resizeMode="contain"
-              />
-            </View>
-
-            {/* Header */}
-            <View className="mb-10">
-              <Text className="text-2xl text-white font-medium tracking-tight text-center">
-                Welcome back
-              </Text>
-              <Text className="text-sm text-zinc-300 text-center mt-2 font-medium">
-                Sign in to continue your health journey
-              </Text>
-            </View>
-
-            {/* Error Message */}
-            {error && (
-              <View className="mb-6 p-4 bg-red-500/10 rounded-xl border border-red-500/20">
-                <Text className="text-red-400 text-sm text-center font-medium">{error}</Text>
-              </View>
-            )}
-
-            {/* Form */}
-            <View className="space-y-6">
-              {/* Email */}
-              <View className='mb-4'>
-                <TextInput
-                  className="bg-neutral-900 text-zinc-100 px-4 py-4 text-base rounded-xl placeholder:text-zinc-400"
-                  placeholder="Enter your email"
-                  placeholderTextColor="#525252"
-                  value={formData.email}
-                  onChangeText={(value) => handleInputChange('email', value)}
-                  keyboardType="email-address"
-                  autoCapitalize="none"
-                  autoCorrect={false}
-                  editable={!loading && !googleLoading}
+      <View className={`flex-1 ${bgColor}`}>
+        <StatusBar style={isDark ? "light" : "dark"} />
+        
+        <SafeAreaView className="flex-1">
+          <ScrollView 
+            showsVerticalScrollIndicator={false}
+            contentContainerStyle={{ flexGrow: 1 }}
+            keyboardShouldPersistTaps="handled"
+          >
+            <View className="flex-1 px-6 pt-8 pb-12">
+              
+              {/* Logo */}
+              <View className="items-center">
+                <Image
+                  source={require('@/assets/logo/logo.png')}
+                  className="w-32 h-32"
+                  resizeMode="contain"
                 />
               </View>
 
-              {/* Password */}
-              <View>
-                <View className="relative">
+              {/* Header */}
+              <View className="mb-10">
+                <Text className={`text-2xl ${textPrimary} font-medium tracking-tight text-center`}>
+                  Welcome back
+                </Text>
+                <Text className={`text-sm ${textSecondary} text-center mt-2 font-medium`}>
+                  Sign in to continue your health journey
+                </Text>
+              </View>
+
+              {/* Error Message */}
+              {error && (
+                <View className={`mb-6 p-4 ${errorBg} rounded-xl border ${errorBorder}`}>
+                  <Text className={`${errorText} text-sm text-center font-medium`}>{error}</Text>
+                </View>
+              )}
+
+              {/* Form */}
+              <View className="space-y-6">
+                {/* Email */}
+                <View className='mb-4'>
                   <TextInput
-                    className="bg-zinc-900 text-zinc-100 px-4 py-4 text-base rounded-xl pr-12"
-                    placeholder="Enter your password"
-                    placeholderTextColor="#525252"
-                    value={formData.password}
-                    onChangeText={(value) => handleInputChange('password', value)}
-                    secureTextEntry={!passwordShow}
+                    className={`${inputBg} ${inputText} px-4 py-4 text-base rounded-xl`}
+                    placeholder="Enter your email"
+                    placeholderTextColor={placeholderColor}
+                    value={formData.email}
+                    onChangeText={(value) => handleInputChange('email', value)}
+                    keyboardType="email-address"
+                    autoCapitalize="none"
+                    autoCorrect={false}
                     editable={!loading && !googleLoading}
                   />
-                  <TouchableOpacity
-                    onPress={() => setPasswordShow(!passwordShow)}
-                    className="absolute right-3 top-3"
+                </View>
+
+                {/* Password */}
+                <View>
+                  <View className="relative">
+                    <TextInput
+                      className={`${inputBg} ${inputText} px-4 py-4 text-base rounded-xl pr-12`}
+                      placeholder="Enter your password"
+                      placeholderTextColor={placeholderColor}
+                      value={formData.password}
+                      onChangeText={(value) => handleInputChange('password', value)}
+                      secureTextEntry={!passwordShow}
+                      editable={!loading && !googleLoading}
+                    />
+                    <TouchableOpacity
+                      onPress={() => setPasswordShow(!passwordShow)}
+                      className="absolute right-3 top-3"
+                      disabled={loading || googleLoading}
+                    >
+                      <Ionicons 
+                        name={passwordShow ? 'eye-off-outline' : 'eye-outline'} 
+                        size={22} 
+                        color="#737373" 
+                      />
+                    </TouchableOpacity>
+                  </View>
+                  
+                  {/* Forgot Password Link */}
+                  <TouchableOpacity 
+                    onPress={() => setForgotModal(true)}
+                    className="self-end mt-2"
                     disabled={loading || googleLoading}
                   >
-                    <Ionicons 
-                      name={passwordShow ? 'eye-off-outline' : 'eye-outline'} 
-                      size={22} 
-                      color="#737373" 
-                    />
+                    <Text className={`${linkText} text-xs font-medium`}>
+                      Forgot password?
+                    </Text>
                   </TouchableOpacity>
                 </View>
+
+                {/* Sign In Button */}
+                <TouchableOpacity
+                  onPress={handleSignIn}
+                  disabled={loading || googleLoading}
+                  className="mt-4 bg-blue-600 py-4 rounded-xl"
+                  activeOpacity={0.8}
+                >
+                  {loading ? (
+                    <View className="flex-row justify-center items-center">
+                      <ActivityIndicator size="small" color="#000000" />
+                      <Text className="text-white font-medium text-base ml-2">
+                        Signing in...
+                      </Text>
+                    </View>
+                  ) : (
+                    <Text className="text-white text-center font-medium text-base">
+                      Sign in
+                    </Text>
+                  )}
+                </TouchableOpacity>
+
+                {/* Divider */}
+                <View className="flex-row items-center my-6">
+                  <View className={`flex-1 h-[1px] ${dividerBg}`} />
+                  <Text className={`mx-4 ${textTertiary} text-sm font-light`}>or</Text>
+                  <View className={`flex-1 h-[1px] ${dividerBg}`} />
+                </View>
+
+                {/* Google Sign In */}
+                <GoogleSignInButton
+                  onSuccess={handleGoogleSuccess}
+                  onError={handleGoogleError}
+                  fullWidth={true}
+                  buttonText='Continue With Google'
+                />
                 
-                {/* Forgot Password Link */}
-                <TouchableOpacity 
-                   
-                  onPress={() => setForgotModal(true)}
-                  className="self-end mt-2"
-                  disabled={loading || googleLoading}
-                >
-                  <Text className="text-blue-400 text-xs font-medium">
-                    Forgot password?
-                  </Text>
-                </TouchableOpacity>
-              </View>
-
-              {/* Sign In Button */}
-              <TouchableOpacity
-                onPress={handleSignIn}
-                disabled={loading || googleLoading}
-                className="mt-4 bg-blue-600 py-4 rounded-xl"
-                activeOpacity={0.8}
-              >
-                {loading ? (
-                  <View className="flex-row justify-center items-center">
-                    <ActivityIndicator size="small" color="#000000" />
-                    <Text className="text-white font-medium text-base ml-2">
-                      Signing in...
-                    </Text>
-                  </View>
-                ) : (
-                  <Text className="text-white text-center font-medium text-base">
-                    Sign in
-                  </Text>
-                )}
-              </TouchableOpacity>
-
-              {/* Divider */}
-              <View className="flex-row items-center my-6">
-                <View className="flex-1 h-[1px] bg-zinc-800" />
-                <Text className="mx-4 text-zinc-600 text-sm font-light">or</Text>
-                <View className="flex-1 h-[1px] bg-zinc-800" />
-              </View>
-
-{/*  <TouchableOpacity
-    onPress={async () => {
-      console.log("🔍 Running network debug...");
-      await debugNetwork();
-    }}
-    className="bg-zinc-800 py-3 px-4 rounded-xl"
-  >
-    <Text className="text-white text-center">Debug Network</Text>
-  </TouchableOpacity> */}
-              {/* Google Sign In */}
-             {/*  <TouchableOpacity
-            
-                disabled={googleLoading || loading}
-                className="border border-zinc-800 py-4 rounded-xl flex-row justify-center items-center"
-                activeOpacity={0.7}
-              >
-                {googleLoading ? (
-                  <ActivityIndicator size="small" color="#FFFFFF" />
-                ) : (
-                  <>
-                    <Ionicons name="logo-google" size={20} color="#FFFFFF" />
-                    <Text className="text-zinc-300 font-medium text-base ml-2">
-                      Continue with Google
-                    </Text>
-                  </>
-                )}
-              </TouchableOpacity>
-
- */}
-              {/* custom OAuth Button(Google) */}
-              <GoogleSignInButton
-               onSuccess={handleGoogleSuccess}
-               onError={handleGoogleError}
-               fullWidth={true}
-               buttonText='Continue With Google'
-              
-              />
-              {/* Sign Up Link */}
-              <View className="flex-row justify-center mt-8">
-                <Text className="text-zinc-300 text-sm font-medium">Don't have an account? </Text>
-                <TouchableOpacity 
-                  onPress={() => router.push('/(auth)/sign-up')}
-                  disabled={loading || googleLoading}
-                >
-                  <Text className="text-blue-400 text-sm font-medium">Sign up</Text>
-                </TouchableOpacity>
+                {/* Sign Up Link */}
+                <View className="flex-row justify-center mt-8">
+                  <Text className={`${textSecondary} text-sm font-medium`}>Don't have an account? </Text>
+                  <TouchableOpacity 
+                    onPress={() => router.push('/(auth)/sign-up')}
+                    disabled={loading || googleLoading}
+                  >
+                    <Text className={`${linkText} text-sm font-medium`}>Sign up</Text>
+                  </TouchableOpacity>
+                </View>
               </View>
             </View>
-          </View>
-        </ScrollView>
-      </SafeAreaView>
-    </View>
-    <ForgotPassword
-     visible={forgotModal}
-     onClose={() => setForgotModal(false)}
-     
-    />
+          </ScrollView>
+        </SafeAreaView>
+      </View>
+      
+      <ForgotPassword
+        visible={forgotModal}
+        onClose={() => setForgotModal(false)}
+      />
     </>
   );
 }

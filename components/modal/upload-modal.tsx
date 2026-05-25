@@ -1,6 +1,7 @@
 import { saveDocumentMetadata } from "@/config/firebase/services/dashboard/documents";
 import { StorageService } from "@/config/firebase/services/storage-tracker/service";
 import { useAuth } from '@/context/auth-context';
+import { useAppTheme } from '@/context/theme-context';
 import { extractFileInfo, uploadToCloudinary } from '@/lib/cloudinary/service';
 import { Ionicons } from '@expo/vector-icons';
 import { CameraView, useCameraPermissions } from 'expo-camera';
@@ -46,6 +47,7 @@ const DOCUMENT_CATEGORIES = [
 ];
 
 export default function UploadModal({ visible, onClose, onUpload, onUploadSuccess }: UploadModalProps) {
+  const { isDark } = useAppTheme();
   const [uploadType, setUploadType] = React.useState('file');
   const [fileName, setFileName] = React.useState('');
   const [selectedCategory, setSelectedCategory] = React.useState('');
@@ -61,6 +63,21 @@ export default function UploadModal({ visible, onClose, onUpload, onUploadSucces
   const [mediaPermission, requestMediaPermission] = MediaLibrary.usePermissions();
   const modalSlideAnim = React.useRef(new Animated.Value(height)).current;
   const { user } = useAuth();
+
+  // Theme-aware colors
+  const modalBg = isDark ? 'bg-neutral-900' : 'bg-white';
+  
+  const textPrimary = isDark ? 'text-white' : 'text-black';
+  const textSecondary = isDark ? 'text-neutral-400' : 'text-gray-500';
+  const textTertiary = isDark ? 'text-neutral-500' : 'text-gray-400';
+  const inputBg = isDark ? 'bg-neutral-800' : 'bg-gray-100';
+  const iconColor = isDark ? '#737373' : '#9ca3af';
+  const buttonBg = isDark ? 'bg-neutral-800' : 'bg-gray-100';
+  const selectedBg = isDark ? 'bg-blue-500' : 'bg-blue-600';
+  const dropdownBg = isDark ? 'bg-neutral-800' : 'bg-gray-100';
+  const dropdownText = isDark ? 'text-white' : 'text-black';
+  const starBg = isDark ? 'bg-neutral-800' : 'bg-gray-200';
+  const progressBarBg = isDark ? 'bg-neutral-800' : 'bg-gray-300';
   
   React.useEffect(() => {
     if (visible) {
@@ -105,90 +122,89 @@ export default function UploadModal({ visible, onClose, onUpload, onUploadSucces
     setIsDropdownOpen(false);
   };
 
-const handleFilePick = async () => {
-  try {
-    Alert.alert(
-      'Select Source',
-      'Choose where to pick your file from',
-      [
-        {
-          text: '📸 Photos Library',
-          onPress: async () => {
-            try {
-              const result = await ImagePicker.launchImageLibraryAsync({
-                
-                mediaTypes: ImagePicker.MediaTypeOptions.All,
-                allowsEditing: true,
-                quality: 1,
-                allowsMultipleSelection: false,
-              });
-
-              if (!result.canceled) {
-                const selected = result.assets[0];
-                setSelectedFile({
-                  uri: selected.uri,
-                  name: selected.fileName || `image_${Date.now()}.jpg`,
-                  type: selected.mimeType || 'image/jpeg',
-                  size: selected.fileSize,
+  const handleFilePick = async () => {
+    try {
+      Alert.alert(
+        'Select Source',
+        'Choose where to pick your file from',
+        [
+          {
+            text: '📸 Photos Library',
+            onPress: async () => {
+              try {
+                const result = await ImagePicker.launchImageLibraryAsync({
+                  mediaTypes: ImagePicker.MediaTypeOptions.All,
+                  allowsEditing: true,
+                  quality: 1,
+                  allowsMultipleSelection: false,
                 });
-                
-                if (!fileName) {
-                  setFileName(selected.fileName || `image_${Date.now()}.jpg`);
-                }
-              }
-            } catch (error) {
-              console.error('Photo pick error:', error);
-              Alert.alert('Error', 'Failed to pick from photos');
-            }
-          },
-        },
-        {
-          text: '📄 Files (PDF, DOC, XLS, etc.)',
-          onPress: async () => {
-            try {
-              const result = await DocumentPicker.getDocumentAsync({
-                type: [
-                  'application/pdf',
-                  'application/msword',
-                  'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-                  'application/vnd.ms-excel',
-                  'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-                  'text/plain',
-                ],
-                copyToCacheDirectory: true,
-              });
 
-              if (result.canceled === false) {
-                const selected = result.assets[0];
-                setSelectedFile({
-                  uri: selected.uri,
-                  name: selected.name,
-                  type: selected.mimeType || 'application/octet-stream',
-                  size: selected.size,
-                });
-                
-                if (!fileName) {
-                  setFileName(selected.name);
+                if (!result.canceled) {
+                  const selected = result.assets[0];
+                  setSelectedFile({
+                    uri: selected.uri,
+                    name: selected.fileName || `image_${Date.now()}.jpg`,
+                    type: selected.mimeType || 'image/jpeg',
+                    size: selected.fileSize,
+                  });
+                  
+                  if (!fileName) {
+                    setFileName(selected.fileName || `image_${Date.now()}.jpg`);
+                  }
                 }
+              } catch (error) {
+                console.error('Photo pick error:', error);
+                Alert.alert('Error', 'Failed to pick from photos');
               }
-            } catch (error) {
-              console.error('File pick error:', error);
-              Alert.alert('Error', 'Failed to pick file');
-            }
+            },
           },
-        },
-        {
-          text: 'Cancel',
-          style: 'cancel',
-        },
-      ],
-      { cancelable: true }
-    );
-  } catch (error) {
-    console.error('File pick error:', error);
-    Alert.alert('Error', 'Failed to pick file');
-  }
-};
+          {
+            text: '📄 Files (PDF, DOC, XLS, etc.)',
+            onPress: async () => {
+              try {
+                const result = await DocumentPicker.getDocumentAsync({
+                  type: [
+                    'application/pdf',
+                    'application/msword',
+                    'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+                    'application/vnd.ms-excel',
+                    'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+                    'text/plain',
+                  ],
+                  copyToCacheDirectory: true,
+                });
+
+                if (result.canceled === false) {
+                  const selected = result.assets[0];
+                  setSelectedFile({
+                    uri: selected.uri,
+                    name: selected.name,
+                    type: selected.mimeType || 'application/octet-stream',
+                    size: selected.size,
+                  });
+                  
+                  if (!fileName) {
+                    setFileName(selected.name);
+                  }
+                }
+              } catch (error) {
+                console.error('File pick error:', error);
+                Alert.alert('Error', 'Failed to pick file');
+              }
+            },
+          },
+          {
+            text: 'Cancel',
+            style: 'cancel',
+          },
+        ],
+        { cancelable: true }
+      );
+    } catch (error) {
+      console.error('File pick error:', error);
+      Alert.alert('Error', 'Failed to pick file');
+    }
+  };
 
   const handleCameraOpen = async () => {
     if (!cameraPermission?.granted) {
@@ -230,115 +246,111 @@ const handleFilePick = async () => {
     }
   };
 
-const handleUpload = async () => {
-  if (!selectedFile) {
-    Alert.alert('No File', 'Please select a file first');
-    return;
-  }
-  
-  if (!selectedCategory) {
-    Alert.alert('Missing Info', 'Please select document type');
-    return;
-  }
-
-  if (!user) {
-    Alert.alert('Error', 'You must be logged in to upload');
-    return;
-  }
-
-  // ✅ Check storage space before upload
-  const hasEnoughSpace = await StorageService.hasEnoughSpace(user.uid, selectedFile.size || 0);
-  if (!hasEnoughSpace) {
-    Alert.alert(
-      'Storage Full',
-      'You have reached your storage limit (500 MB). Please delete some files or upgrade your plan to upload more.',
-      [{ text: 'OK' }]
-    );
-    return;
-  }
-
-  setIsUploading(true);
-  setUploadProgress(0);
-
-  try {
-    // Upload to Cloudinary
-    const cloudinaryResponse = await uploadToCloudinary(selectedFile.uri, user.uid, {
-      generateThumbnail: true,
-      patientId: user.uid,
-      tags: tags.split(',').map(tag => tag.trim()).filter(tag => tag),
-      onProgress: (progress) => setUploadProgress(progress),
-      fileType: selectedFile.type,
-    });
-
-    if (!cloudinaryResponse) {
-      throw new Error('Cloudinary upload failed');
-    }
-
-    const fileInfo = extractFileInfo(cloudinaryResponse);
-    const selectedCategoryData = DOCUMENT_CATEGORIES.find(cat => cat.value === selectedCategory);
-
-    // Save metadata to Firebase
-    const documentData = {
-      userId: user.uid,
-      userEmail: user.email,
-      patientId: user.uid,
-      documentName: fileName || selectedCategoryData?.label || 'Untitled',
-      documentDate: new Date().toISOString().split('T')[0],
-      category: selectedCategory,
-      categoryLabel: selectedCategoryData?.label || '',
-      description: description,
-      tags: tags.split(',').map(tag => tag.trim()).filter(tag => tag),
-      fileInfo: {
-        name: selectedFile.name,
-        size: selectedFile.size || fileInfo.bytes,
-        type: selectedFile.type,
-        fileTypeCategory: selectedCategoryData?.group === 'Scan Reports' ? 'image' : 'document'
-      },
-      cloudinary: {
-        publicId: fileInfo.publicId,
-        url: fileInfo.url,
-        thumbnailUrl: fileInfo.thumbnailUrl,
-        format: fileInfo.format,
-        bytes: fileInfo.bytes,
-        originalFilename: fileInfo.originalFilename
-      },
-      isStarred: isStarred
-    };
-
-    const documentId = await saveDocumentMetadata(documentData);
-    
-    // ✅ Update storage tracker after successful upload
-    await StorageService.addFileStorage(user.uid, fileInfo.bytes);
-    
-    if (onUpload) {
-      onUpload(uploadType, {
-        uri: selectedFile.uri,
-        fileName: fileName || selectedFile.name,
-        type: selectedFile.type,
-        category: selectedCategory,
-        categoryLabel: selectedCategoryData?.label,
-        group: selectedCategoryData?.group,
-        isStarred,
-        tags: tags.split(',').map(tag => tag.trim()).filter(tag => tag),
-        description,
-      });
+  const handleUpload = async () => {
+    if (!selectedFile) {
+      Alert.alert('No File', 'Please select a file first');
+      return;
     }
     
-    if (onUploadSuccess) {
-      onUploadSuccess({ id: documentId, ...documentData });
+    if (!selectedCategory) {
+      Alert.alert('Missing Info', 'Please select document type');
+      return;
     }
-    
-    Alert.alert('Success', 'File uploaded successfully!');
-    handleClose();
-    
-  } catch (error) {
-    console.error('Upload error:', error);
-    Alert.alert('Error', 'Failed to upload file. Please try again.');
-  } finally {
-    setIsUploading(false);
+
+    if (!user) {
+      Alert.alert('Error', 'You must be logged in to upload');
+      return;
+    }
+
+    const hasEnoughSpace = await StorageService.hasEnoughSpace(user.uid, selectedFile.size || 0);
+    if (!hasEnoughSpace) {
+      Alert.alert(
+        'Storage Full',
+        'You have reached your storage limit (500 MB). Please delete some files or upgrade your plan to upload more.',
+        [{ text: 'OK' }]
+      );
+      return;
+    }
+
+    setIsUploading(true);
     setUploadProgress(0);
-  }
-};
+
+    try {
+      const cloudinaryResponse = await uploadToCloudinary(selectedFile.uri, user.uid, {
+        generateThumbnail: true,
+        patientId: user.uid,
+        tags: tags.split(',').map(tag => tag.trim()).filter(tag => tag),
+        onProgress: (progress) => setUploadProgress(progress),
+        fileType: selectedFile.type,
+      });
+
+      if (!cloudinaryResponse) {
+        throw new Error('Cloudinary upload failed');
+      }
+
+      const fileInfo = extractFileInfo(cloudinaryResponse);
+      const selectedCategoryData = DOCUMENT_CATEGORIES.find(cat => cat.value === selectedCategory);
+
+      const documentData = {
+        userId: user.uid,
+        userEmail: user.email,
+        patientId: user.uid,
+        documentName: fileName || selectedCategoryData?.label || 'Untitled',
+        documentDate: new Date().toISOString().split('T')[0],
+        category: selectedCategory,
+        categoryLabel: selectedCategoryData?.label || '',
+        description: description,
+        tags: tags.split(',').map(tag => tag.trim()).filter(tag => tag),
+        fileInfo: {
+          name: selectedFile.name,
+          size: selectedFile.size || fileInfo.bytes,
+          type: selectedFile.type,
+          fileTypeCategory: selectedCategoryData?.group === 'Scan Reports' ? 'image' : 'document'
+        },
+        cloudinary: {
+          publicId: fileInfo.publicId,
+          url: fileInfo.url,
+          thumbnailUrl: fileInfo.thumbnailUrl,
+          format: fileInfo.format,
+          bytes: fileInfo.bytes,
+          originalFilename: fileInfo.originalFilename
+        },
+        isStarred: isStarred
+      };
+
+      const documentId = await saveDocumentMetadata(documentData);
+      
+      await StorageService.addFileStorage(user.uid, fileInfo.bytes);
+      
+      if (onUpload) {
+        onUpload(uploadType, {
+          uri: selectedFile.uri,
+          fileName: fileName || selectedFile.name,
+          type: selectedFile.type,
+          category: selectedCategory,
+          categoryLabel: selectedCategoryData?.label,
+          group: selectedCategoryData?.group,
+          isStarred,
+          tags: tags.split(',').map(tag => tag.trim()).filter(tag => tag),
+          description,
+        });
+      }
+      
+      if (onUploadSuccess) {
+        onUploadSuccess({ id: documentId, ...documentData });
+      }
+      
+      Alert.alert('Success', 'File uploaded successfully!');
+      handleClose();
+      
+    } catch (error) {
+      console.error('Upload error:', error);
+      Alert.alert('Error', 'Failed to upload file. Please try again.');
+    } finally {
+      setIsUploading(false);
+      setUploadProgress(0);
+    }
+  };
 
   const removeSelectedFile = () => {
     setSelectedFile(null);
@@ -417,12 +429,12 @@ const handleUpload = async () => {
             transform: [{ translateY: modalSlideAnim }],
             maxHeight: height * 0.9,
           }}
-          className="bg-neutral-900 rounded-t-3xl"
+          className={`rounded-t-3xl ${modalBg}`}
         >
-          <View className="flex-row justify-between items-center p-5 border-b border-neutral-800">
-            <Text className="text-white text-xl font-semibold">Upload Medical File</Text>
+          <View className={`flex-row justify-between items-center p-5 `}>
+            <Text className={`${textPrimary} text-xl font-semibold`}>Upload Medical File</Text>
             <TouchableOpacity onPress={handleClose}>
-              <Ionicons name="close" size={24} color="#a1a1aa" />
+              <Ionicons name="close" size={24} color={iconColor} />
             </TouchableOpacity>
           </View>
 
@@ -436,7 +448,7 @@ const handleUpload = async () => {
               <TouchableOpacity
                 onPress={() => setUploadType('file')}
                 className={`flex-1 py-3 rounded-xl items-center ${
-                  uploadType === 'file' ? 'bg-blue-500' : 'bg-neutral-800'
+                  uploadType === 'file' ? selectedBg : buttonBg
                 }`}
               >
                 <Ionicons name="document-outline" size={24} color="white" />
@@ -445,30 +457,30 @@ const handleUpload = async () => {
               
               <TouchableOpacity
                 onPress={handleCameraOpen}
-                className={`flex-1 py-3 rounded-xl items-center ${
-                  uploadType === 'camera' ? 'bg-blue-500' : 'bg-neutral-800'
+                className={`flex-1 py-3 rounded-xl items-center  ${
+                  uploadType === 'camera' ? selectedBg : buttonBg
                 }`}
               >
-                <Ionicons name="camera-outline" size={24} color="white" />
-                <Text className="text-white text-sm mt-1">Camera</Text>
+                <Ionicons name="camera-outline" size={24}  />
+                <Text className=" text-sm mt-1">Camera</Text>
               </TouchableOpacity>
             </View>
 
             {/* File Preview Section */}
             {selectedFile ? (
               <View className="mb-5">
-                <Text className="text-neutral-400 text-sm mb-2">Selected File</Text>
-                <View className="relative bg-neutral-800 rounded-xl p-4 flex-row items-center">
+                <Text className={`${textSecondary} text-sm mb-2`}>Selected File</Text>
+                <View className={`relative ${inputBg} rounded-xl p-4 flex-row items-center`}>
                   <Ionicons 
                     name={selectedFile.type?.startsWith('image/') ? "image-outline" : "document-text-outline"} 
                     size={32} 
                     color="#3b82f6" 
                   />
                   <View className="flex-1 ml-3">
-                    <Text className="text-white font-medium" numberOfLines={1}>
+                    <Text className={`${textPrimary} font-medium`} numberOfLines={1}>
                       {selectedFile.name}
                     </Text>
-                    <Text className="text-neutral-400 text-xs">
+                    <Text className={`${textSecondary} text-xs`}>
                       {selectedFile.size ? `${(selectedFile.size / 1024).toFixed(2)} KB` : 'Unknown size'}
                     </Text>
                   </View>
@@ -483,17 +495,17 @@ const handleUpload = async () => {
             ) : (
               <TouchableOpacity
                 onPress={uploadType === 'file' ? handleFilePick : handleCameraOpen}
-                className="mb-5 bg-neutral-800 rounded-xl p-8 items-center justify-center border border-neutral-700 border-dashed"
+                className={`mb-5 ${buttonBg} rounded-xl p-8 items-center justify-center border border-neutral-700 border-dashed`}
               >
                 <Ionicons 
                   name={uploadType === 'file' ? "cloud-upload-outline" : "camera-outline"} 
                   size={48} 
-                  color="#737373" 
+                  color={iconColor} 
                 />
-                <Text className="text-neutral-400 mt-2 text-center">
+                <Text className={`${textSecondary} mt-2 text-center`}>
                   {uploadType === 'file' ? 'Tap to select a file' : 'Tap to take a photo'}
                 </Text>
-                <Text className="text-neutral-500 text-xs mt-1">
+                <Text className={`${textTertiary} text-xs mt-1`}>
                   {uploadType === 'file' ? 'Supports images, PDFs, Word, Excel, and more' : 'Take a photo of your medical document'}
                 </Text>
               </TouchableOpacity>
@@ -501,11 +513,11 @@ const handleUpload = async () => {
 
             {/* File Name Input */}
             <View className="mb-5">
-              <Text className="text-neutral-400 text-sm mb-2">File Name</Text>
+              <Text className={`${textSecondary} text-sm mb-2`}>File Name</Text>
               <TextInput
-                className="bg-neutral-800 rounded-xl px-4 py-3 text-white"
+                className={`${inputBg} ${textPrimary} rounded-xl px-4 py-3`}
                 placeholder="Enter file name"
-                placeholderTextColor="#737373"
+                placeholderTextColor={iconColor}
                 value={fileName}
                 onChangeText={setFileName}
               />
@@ -513,23 +525,23 @@ const handleUpload = async () => {
 
             {/* Document Type Dropdown */}
             <View className="mb-5">
-              <Text className="text-neutral-400 text-sm mb-2">Document Type</Text>
+              <Text className={`${textSecondary} text-sm mb-2`}>Document Type</Text>
               <Pressable
                 onPress={() => setIsDropdownOpen(!isDropdownOpen)}
-                className="bg-neutral-800 rounded-xl px-4 py-3 flex-row justify-between items-center"
+                className={`${inputBg} rounded-xl px-4 py-3 flex-row justify-between items-center`}
               >
-                <Text className={selectedCategory ? 'text-white' : 'text-neutral-500'}>
+                <Text className={selectedCategory ? textPrimary : textSecondary}>
                   {selectedCategoryData?.label || 'Select document type'}
                 </Text>
                 <Ionicons 
                   name={isDropdownOpen ? "chevron-up" : "chevron-down"} 
                   size={20} 
-                  color="#737373" 
+                  color={iconColor} 
                 />
               </Pressable>
 
               {isDropdownOpen && (
-                <View className="bg-neutral-800 rounded-xl mt-2 max-h-80">
+                <View className={`${dropdownBg} rounded-xl mt-2 max-h-80`}>
                   <ScrollView showsVerticalScrollIndicator={false}>
                     {Object.entries(getGroupedCategories()).map(([group, categories]) => (
                       <View key={group}>
@@ -548,7 +560,7 @@ const handleUpload = async () => {
                             }`}
                           >
                             <Text className={`text-sm ${
-                              selectedCategory === category.value ? 'text-blue-500' : 'text-white'
+                              selectedCategory === category.value ? 'text-blue-500' : dropdownText
                             }`}>
                               {category.label}
                             </Text>
@@ -564,26 +576,26 @@ const handleUpload = async () => {
             {/* Star Option */}
             <TouchableOpacity
               onPress={() => setIsStarred(!isStarred)}
-              className="flex-row items-center gap-3 mb-5 p-3 bg-neutral-800 rounded-xl"
+              className={`flex-row items-center gap-3 mb-5 p-3 ${starBg} rounded-xl`}
             >
               <Ionicons 
                 name={isStarred ? "star" : "star-outline"} 
                 size={22} 
-                color={isStarred ? "#fbbf24" : "#737373"} 
+                color={isStarred ? "#fbbf24" : iconColor} 
               />
-              <Text className="text-white flex-1">Star this file</Text>
+              <Text className={`${textPrimary} flex-1`}>Star this file</Text>
               {isStarred && (
-                <Text className="text-neutral-400 text-xs">Important</Text>
+                <Text className={`${textSecondary} text-xs`}>Important</Text>
               )}
             </TouchableOpacity>
 
             {/* Tags Input */}
             <View className="mb-5">
-              <Text className="text-neutral-400 text-sm mb-2">Tags (comma separated)</Text>
+              <Text className={`${textSecondary} text-sm mb-2`}>Tags (comma separated)</Text>
               <TextInput
-                className="bg-neutral-800 rounded-xl px-4 py-3 text-white"
+                className={`${inputBg} ${textPrimary} rounded-xl px-4 py-3`}
                 placeholder="e.g., urgent, follow-up, cardiology"
-                placeholderTextColor="#737373"
+                placeholderTextColor={iconColor}
                 value={tags}
                 onChangeText={setTags}
               />
@@ -591,11 +603,11 @@ const handleUpload = async () => {
 
             {/* Description */}
             <View className="mb-6">
-              <Text className="text-neutral-400 text-sm mb-2">Description (Optional)</Text>
+              <Text className={`${textSecondary} text-sm mb-2`}>Description (Optional)</Text>
               <TextInput
-                className="bg-neutral-800 rounded-xl px-4 py-3 text-white"
+                className={`${inputBg} ${textPrimary} rounded-xl px-4 py-3`}
                 placeholder="Add description..."
-                placeholderTextColor="#737373"
+                placeholderTextColor={iconColor}
                 multiline
                 numberOfLines={3}
                 textAlignVertical="top"
@@ -608,10 +620,10 @@ const handleUpload = async () => {
             {isUploading && (
               <View className="mb-4">
                 <View className="flex-row justify-between mb-2">
-                  <Text className="text-neutral-400 text-sm">Uploading to Cloud...</Text>
+                  <Text className={`${textSecondary} text-sm`}>Uploading to Cloud...</Text>
                   <Text className="text-blue-500 text-sm">{Math.round(uploadProgress)}%</Text>
                 </View>
-                <View className="h-2 bg-neutral-800 rounded-full overflow-hidden">
+                <View className={`h-2 ${progressBarBg} rounded-full overflow-hidden`}>
                   <View className="h-full bg-blue-500 rounded-full" style={{ width: `${uploadProgress}%` }} />
                 </View>
               </View>
@@ -621,7 +633,7 @@ const handleUpload = async () => {
             <TouchableOpacity
               onPress={handleUpload}
               disabled={!selectedFile || isUploading}
-              className={`py-4 rounded-xl mb-3 ${selectedFile && !isUploading ? 'bg-blue-500' : 'bg-neutral-700'}`}
+              className={`py-4 rounded-xl mb-3 ${selectedFile && !isUploading ? 'bg-blue-500' : buttonBg}`}
             >
               {isUploading ? (
                 <View className="flex-row items-center justify-center gap-2">
@@ -631,7 +643,7 @@ const handleUpload = async () => {
                   </Text>
                 </View>
               ) : (
-                <Text className={`text-center font-semibold text-base ${selectedFile ? 'text-white' : 'text-neutral-500'}`}>
+                <Text className={`text-center font-semibold text-base ${selectedFile ? 'text-white' : textSecondary}`}>
                   Upload to Cloud
                 </Text>
               )}
@@ -643,7 +655,7 @@ const handleUpload = async () => {
               className="py-3 rounded-xl mb-4"
               disabled={isUploading}
             >
-              <Text className="text-neutral-400 text-center">
+              <Text className={`${textSecondary} text-center`}>
                 Cancel
               </Text>
             </TouchableOpacity>

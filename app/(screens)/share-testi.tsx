@@ -3,6 +3,7 @@ import {
   TestimonialFormData,
   testimonialService,
 } from '@/config/firebase/services/testimonials/service';
+import { useAppTheme } from '@/context/theme-context';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import React, { useRef, useState } from 'react';
@@ -20,6 +21,7 @@ import {
 import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
 
 export default function TestimonialsScreen() {
+  const { isDark } = useAppTheme();
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
     name: '',
@@ -32,6 +34,20 @@ export default function TestimonialsScreen() {
   const nameInputRef = useRef<TextInput>(null);
   const roleInputRef = useRef<TextInput>(null);
   const reviewInputRef = useRef<TextInput>(null);
+
+  // Theme-aware colors
+  const bgColor = isDark ? 'bg-black' : 'bg-white';
+  const cardBg = isDark ? 'bg-neutral-900' : 'bg-gray-100';
+  const borderColor = isDark ? 'border-neutral-800' : 'border-gray-200';
+  const textPrimary = isDark ? 'text-white' : 'text-black';
+  const textSecondary = isDark ? 'text-neutral-500' : 'text-gray-500';
+  const textTertiary = isDark ? 'text-neutral-600' : 'text-gray-400';
+  const inputBg = isDark ? 'bg-neutral-900' : 'bg-gray-100';
+  const placeholderColor = isDark ? '#525252' : '#9ca3af';
+  const avatarBg = isDark ? 'bg-neutral-800' : 'bg-gray-200';
+  const iconColor = isDark ? '#737373' : '#9ca3af';
+  const removeText = isDark ? 'text-red-400' : 'text-red-600';
+  const starInactive = isDark ? '#404040' : '#d1d5db';
 
   const handleImagePick = async () => {
     Keyboard.dismiss();
@@ -109,7 +125,7 @@ export default function TestimonialsScreen() {
           <Ionicons
             name={star <= formData.rating ? 'star' : 'star-outline'}
             size={24}
-            color={star <= formData.rating ? '#fbbf24' : '#404040'}
+            color={star <= formData.rating ? '#fbbf24' : starInactive}
           />
         </TouchableOpacity>
       ))}
@@ -119,7 +135,7 @@ export default function TestimonialsScreen() {
   return (
     <DashboardWrapper title="Share feedback">
       <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-        <View className="flex-1 bg-black">
+        <View className={`flex-1 ${bgColor}`}>
           <KeyboardAwareScrollView
             enableOnAndroid
             extraScrollHeight={200}
@@ -138,10 +154,10 @@ export default function TestimonialsScreen() {
                     color="#3b82f6"
                   />
                 </View>
-                <Text className="text-white text-2xl font-semibold">
+                <Text className={`${textPrimary} text-2xl font-semibold`}>
                   Share your experience
                 </Text>
-                <Text className="text-neutral-500 text-sm mt-2 text-center">
+                <Text className={`${textSecondary} text-sm mt-2 text-center`}>
                   Help us improve Medora by sharing how it has helped you manage your healthcare journey.
                 </Text>
               </View>
@@ -149,7 +165,7 @@ export default function TestimonialsScreen() {
               {/* Avatar */}
               <View className="items-center mb-8">
                 <TouchableOpacity onPress={handleImagePick}>
-                  <View className="w-20 h-20 rounded-full overflow-hidden bg-neutral-800 items-center justify-center">
+                  <View className={`w-20 h-20 rounded-full overflow-hidden ${avatarBg} items-center justify-center`}>
                     {imageUri ? (
                       <Image
                         source={{ uri: imageUri }}
@@ -159,7 +175,7 @@ export default function TestimonialsScreen() {
                       <Ionicons
                         name="person-outline"
                         size={32}
-                        color="#737373"
+                        color={iconColor}
                       />
                     )}
                   </View>
@@ -170,13 +186,13 @@ export default function TestimonialsScreen() {
                     onPress={removeImage}
                     className="mt-2"
                   >
-                    <Text className="text-red-400 text-xs">
+                    <Text className={`${removeText} text-xs`}>
                       Remove photo
                     </Text>
                   </TouchableOpacity>
                 )}
 
-                <Text className="text-neutral-600 text-xs mt-2">
+                <Text className={`${textTertiary} text-xs mt-2`}>
                   Add photo (optional)
                 </Text>
               </View>
@@ -185,14 +201,14 @@ export default function TestimonialsScreen() {
               <View className="gap-5 pb-10">
                 {/* Name */}
                 <View>
-                  <Text className="text-neutral-500 text-xs mb-1">
+                  <Text className={`${textSecondary} text-xs mb-1`}>
                     Name
                   </Text>
                   <TextInput
                     ref={nameInputRef}
-                    className="bg-neutral-900 text-white px-4 py-4 rounded-xl border border-neutral-800"
+                    className={`${inputBg} ${textPrimary} px-4 py-4 rounded-xl border ${borderColor}`}
                     placeholder="John Doe"
-                    placeholderTextColor="#525252"
+                    placeholderTextColor={placeholderColor}
                     value={formData.name}
                     onChangeText={(t) =>
                       setFormData({ ...formData, name: t })
@@ -204,14 +220,14 @@ export default function TestimonialsScreen() {
 
                 {/* Role */}
                 <View>
-                  <Text className="text-neutral-500 text-xs mb-1">
+                  <Text className={`${textSecondary} text-xs mb-1`}>
                     Role
                   </Text>
                   <TextInput
                     ref={roleInputRef}
-                    className="bg-neutral-900 text-white px-4 py-4 rounded-xl border border-neutral-800"
+                    className={`${inputBg} ${textPrimary} px-4 py-4 rounded-xl border ${borderColor}`}
                     placeholder="Patient / Doctor"
-                    placeholderTextColor="#525252"
+                    placeholderTextColor={placeholderColor}
                     value={formData.about}
                     onChangeText={(t) =>
                       setFormData({ ...formData, about: t })
@@ -223,14 +239,14 @@ export default function TestimonialsScreen() {
 
                 {/* Review */}
                 <View>
-                  <Text className="text-neutral-500 text-xs mb-1">
+                  <Text className={`${textSecondary} text-xs mb-1`}>
                     Review
                   </Text>
                   <TextInput
                     ref={reviewInputRef}
-                    className="bg-neutral-900 text-white px-4 py-4 rounded-xl border border-neutral-800"
+                    className={`${inputBg} ${textPrimary} px-4 py-4 rounded-xl border ${borderColor}`}
                     placeholder="Share your experience..."
-                    placeholderTextColor="#525252"
+                    placeholderTextColor={placeholderColor}
                     multiline
                     numberOfLines={4}
                     textAlignVertical="top"
@@ -243,7 +259,7 @@ export default function TestimonialsScreen() {
 
                 {/* Rating */}
                 <View>
-                  <Text className="text-neutral-500 text-xs mb-1">
+                  <Text className={`${textSecondary} text-xs mb-1`}>
                     Rating
                   </Text>
                   {renderStars()}
@@ -274,12 +290,12 @@ export default function TestimonialsScreen() {
                       <Text className="text-white ml-2">
                         Submit
                       </Text>
-
-                    
                     </>
                   )}
                 </TouchableOpacity>
-                  <Text className='opacity-50 text-center text-xs font-medium text-white'>Your feedback helps us improve Medora for everyone.</Text>
+                <Text className={`opacity-50 text-center text-xs font-medium ${textPrimary}`}>
+                  Your feedback helps us improve Medora for everyone.
+                </Text>
               </View>
             </View>
           </KeyboardAwareScrollView>
