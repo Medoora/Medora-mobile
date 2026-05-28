@@ -1,9 +1,11 @@
 import ReactNativeAsyncStorage from '@react-native-async-storage/async-storage';
 import { getApps, initializeApp } from "firebase/app";
-import { getReactNativePersistence, initializeAuth } from 'firebase/auth';
+import { initializeAuth } from 'firebase/auth';
 import { getFirestore } from "firebase/firestore";
 import { getFunctions } from "firebase/functions";
 import { getStorage } from "firebase/storage";
+// @ts-ignore
+import { getReactNativePersistence } from '@firebase/auth/dist/rn/index.js';
 
 const firebaseConfig = {
   apiKey: process.env.EXPO_PUBLIC_FIREBASE_API_KEY,

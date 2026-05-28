@@ -2,7 +2,7 @@
 
 # dependencies
 node_modules/
-
+health-bot.tsx
 # Expo
 .expo/
 dist/

@@ -18,6 +18,12 @@
       "distribution": "internal"
     },
     "production": {
+      "env": {
+        "API_URL": "https://medora-backend-sigma.vercel.app/api/chat-working"
+
+
+
+     },
       "autoIncrement": true
     }
   },

@@ -19,7 +19,7 @@ import {
   View
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-
+const API_URL = process.env.EXPO_PUBLIC_PRODUCTION_API_CHAT || 'https://medora-backend-sigma.vercel.app/api/chat-working';
 export default function HealthBotScreen() {
   const { user } = useAuth();
   const { isDark } = useAppTheme();
@@ -161,6 +161,13 @@ export default function HealthBotScreen() {
   };
 
   const handleSend = useCallback(async () => {
+     console.log('🔍 Environment Check:', {
+    isDev: __DEV__,
+    hasExpoPublicKey: !!process.env.EXPO_PUBLIC_OPENAI_API_KEY,
+    keyPrefix: process.env.EXPO_PUBLIC_OPENAI_API_KEY?.substring(0, 10),
+    fullKeyLength: process.env.EXPO_PUBLIC_OPENAI_API_KEY?.length,
+    hasRegularKey: !!process.env.OPENAI_API_KEY
+  });
     if (!input.trim() || !user || isSending) return;
 
     const userText = input.trim();
@@ -195,7 +202,7 @@ export default function HealthBotScreen() {
         content: m.content,
       }));
 
-      const response = await fetch('/api/chat', {
+      const response = await fetch(API_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
