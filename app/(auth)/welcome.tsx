@@ -68,10 +68,11 @@ export default function WelcomeScreen() {
         {/* Logo */}
         <View style={{ alignItems: 'center', marginTop: 48 }}>
           <Image
-            source={require('../../assets/logo/3.png')}
+            source={require('../../assets/logo/new-medora-b.png')}
             style={{ width: 176, height: 176 }}
             resizeMode="contain"
           />
+         
         </View>
 
         <View style={{ flex: 1 }} />

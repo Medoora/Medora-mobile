@@ -1,8 +1,10 @@
 import { toggleDocumentStarred, trashDocument } from '@/config/firebase/services/dashboard/documents';
 import { useAppTheme } from '@/context/theme-context';
 import { Ionicons } from '@expo/vector-icons';
-import * as FileSystem from 'expo-file-system';
+import * as FileSystem from 'expo-file-system/legacy';
+import * as MediaLibrary from 'expo-media-library';
 import { useEffect, useRef, useState } from 'react';
+
 import {
   ActivityIndicator,
   Alert,
@@ -117,27 +119,57 @@ export default function FileDetailsModal({
     }
   };
 
-  const handleDownload = async () => {
-    if (!file.cloudinary?.url) return;
+const handleDownload = async () => {
+  if (!file.cloudinary?.url) return;
 
-    setIsDownloading(true);
-    try {
-      const fileName = file.documentName.replace(/\s+/g, '_');
-      const downloadUri = FileSystem.Paths.document + fileName;
+  setIsDownloading(true);
 
-      const { uri } = await FileSystem.downloadAsync(
-        file.cloudinary.url,
-        downloadUri
+  try {
+    // Request media library permissions
+    const { status } = await MediaLibrary.requestPermissionsAsync();
+    
+    if (status !== 'granted') {
+      Alert.alert(
+        'Permission Required',
+        'Please grant access to save files to your device.',
+        [{ text: 'OK' }]
       );
-
-      Alert.alert('Success', `File downloaded to: ${uri}`);
-    } catch (error) {
-      console.error('Error downloading:', error);
-      Alert.alert('Error', 'Failed to download file');
-    } finally {
-      setIsDownloading(false);
+      return;
     }
-  };
+
+    // Get file extension from URL or default to .jpg
+    const urlExtension = file.cloudinary.url.split('.').pop()?.toLowerCase();
+    const validExtensions = ['jpg', 'jpeg', 'png', 'gif', 'bmp', 'webp', 'mp4', 'mov'];
+    const extension = validExtensions.includes(urlExtension) ? urlExtension : 'jpg';
+    
+    // Create filename with proper extension
+    const baseName = file.documentName.replace(/\s+/g, '_').replace(/\.[^/.]+$/, ''); // Remove any existing extension
+    const fileName = `${baseName}.${extension}`;
+    const downloadUri = FileSystem.documentDirectory + fileName;
+
+    // Download the file
+    const { uri } = await FileSystem.downloadAsync(
+      file.cloudinary.url,
+      downloadUri
+    );
+
+    // Save to media library (gallery)
+    const asset = await MediaLibrary.createAssetAsync(uri);
+    
+    // Optionally create an album for your app
+    // await MediaLibrary.createAlbumAsync('YourAppName', asset, false);
+
+    // Delete the temporary file
+    await FileSystem.deleteAsync(uri, { idempotent: true });
+
+    Alert.alert('Success', 'File saved to gallery');
+  } catch (error) {
+    console.error('Error downloading:', error);
+    Alert.alert('Error', 'Failed to download file');
+  } finally {
+    setIsDownloading(false);
+  }
+};
 
   const handleMoveToTrash = async () => {
     Alert.alert(

@@ -208,12 +208,12 @@ export default function Sidebar({
             >
               <View className="px-4 py-4">
                 <View className="flex-row justify-between items-center">
-                  <View className='flex-row items-center'>
+                  <View className='flex-row gap-3 items-center'>
                     <Image
-                      source={require("@/assets/logo/logo.png")}
-                      className='w-12 h-12'
+                      source={require("@/assets/icons/adaptive-icon.png")}
+                      className='w-12 h-12 rounded-2xl'
                     />
-                    <Text className={`text-xl font-bold -ml-2 ${textPrimary}`}>Medora</Text> 
+                     <Text className={`text-xl font-bold -ml-2 ${textPrimary}`}>Medora</Text> 
                   </View>
                   <TouchableOpacity onPress={handleClose} className="w-10 h-10 items-center justify-center">
                     <Ionicons name="close" size={24} color={iconColor} />

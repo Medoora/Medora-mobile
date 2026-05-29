@@ -60,7 +60,7 @@ export async function POST(request: Request) {
       name: "User",
       medicalConditions: [],
       medications: [],
-      allergies: [],
+      allergies: [], 
     };
 
     const formattedData = formatUserDataForPrompt(patientData, userData);
