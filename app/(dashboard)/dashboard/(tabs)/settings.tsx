@@ -1,11 +1,11 @@
 // app/(dashboard)/dashboard/(tabs)/settings.tsx
-import CustomDialogBox from '@/components/Custom-Dialog/Cus-dialog';
 import { auth, db } from '@/config/firebase/config';
 import { signOutUser } from '@/config/firebase/services/auth/auth';
 import { useAuth } from '@/context/auth-context';
 import { useAppTheme } from '@/context/theme-context';
 import { getInitials } from '@/utils/cryto';
 import { Ionicons } from '@expo/vector-icons';
+import { useRouter } from 'expo-router';
 import { sendPasswordResetEmail, updateProfile } from 'firebase/auth';
 import { doc, getDoc, updateDoc } from 'firebase/firestore';
 import React, { useEffect, useState } from 'react';
@@ -34,7 +34,7 @@ export default function SettingsScreen() {
   const [isSendingReset, setIsSendingReset] = useState(false);
   const [resetEmailSent, setResetEmailSent] = useState(false);
   const [showEmail, setShowEmail] = useState(false);
-
+  const route = useRouter()
   // Notification preferences
   const [emailNotifications, setEmailNotifications] = useState(true);
   const [pushNotifications, setPushNotifications] = useState(false);
@@ -104,9 +104,17 @@ export default function SettingsScreen() {
     }
   };
 
-  const handleSignOut = async () => {
-    await signOutUser();
-  };
+ const handleSignOut = async () => {
+     try {
+       await signOutUser();
+       route.push("/(auth)/sign-in")
+       setTimeout(() => {
+       }, 300);
+     } catch (error) {
+       console.log("Error", error);
+       
+     }
+   };
 
   const formatDate = (timestamp: any) => {
     if (!timestamp) return 'N/A';
@@ -297,18 +305,18 @@ export default function SettingsScreen() {
           </View>
 
           {/* Sign Out Button */}
-          <View className="mt-4 pt-4">
+          {/* <View className="mt-4 pt-4">
             <TouchableOpacity
               onPress={() => setIsLogoutDialogVisible(true)}
               className={`py-4 rounded-xl ${isDark ? 'bg-neutral-900' : 'bg-gray-200'} active:opacity-80`}
             >
               <Text className="text-red-500 text-center text-base font-medium">Sign Out</Text>
             </TouchableOpacity>
-          </View>
+          </View> */}
         </View>
       </ScrollView>
       
-      <CustomDialogBox
+     {/*  <CustomDialogBox
         actionButtonName='Logout'
         message='Are You Sure You Want to Sign Out?'
         title={`Sign out ${user?.displayName}`}
@@ -318,7 +326,7 @@ export default function SettingsScreen() {
           handleSignOut();
           setIsLogoutDialogVisible(false);
         }}
-      />
+      /> */}
     </>
   );
 }

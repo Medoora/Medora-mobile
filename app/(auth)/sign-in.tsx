@@ -190,10 +190,10 @@ export default function SignIn() {
             <View className="flex-1 px-6 pt-8 pb-12">
               
               {/* Logo */}
-              <View className="items-center">
+              <View className="items-center mt-5 mb-5">
                 <Image
-                  source={require('@/assets/logo/logo.png')}
-                  className="w-32 h-32"
+                  source={require('@/assets/icons/adaptive-icon.png')}
+                  className="w-16 h-16 rounded-3xl"
                   resizeMode="contain"
                 />
               </View>

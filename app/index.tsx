@@ -10,9 +10,9 @@ const index = () => {
     }, 2000)
     },[])
   return (
-      <View className='flex-1 justify-center bg-neutral-950 items-center'>
+      <View className='flex-1 justify-center bg-[#0056FF] items-center'>
        <Image 
-        source={require('@/assets/logo/logo.png')}
+        source={require('@/assets/icons/adaptive-icon.png')}
        resizeMode='contain'  className='w-[400px] h-[400px]'/> 
     </View> 
   )
