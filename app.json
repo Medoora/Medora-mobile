@@ -21,8 +21,8 @@
       "associatedDomains": ["applinks:medora-web-kappa.vercel.app"],
       "icon": {
         "dark": "./assets/icons/ios-dark.png",
-        "light": "./assets/icons/ios-light.png",
-        "tinted": "./assets/icons/ios-tinted.png"
+        "light": "./assets/icons/ios-dark.png",
+        "tinted": "./assets/icons/ios-dark.png"
       }
     },
     "android": {
@@ -33,21 +33,13 @@
         "monochromeImage": "./assets/icons/adaptive-icon.png"
       },
       "predictiveBackGestureEnabled": false,
-      "permissions": [
-        "READ_EXTERNAL_STORAGE",
-        "WRITE_EXTERNAL_STORAGE",
-        "READ_MEDIA_IMAGES",
-        "READ_MEDIA_VIDEO",
-        "READ_MEDIA_AUDIO",
-        "android.permission.READ_EXTERNAL_STORAGE",
-        "android.permission.WRITE_EXTERNAL_STORAGE",
-        "android.permission.READ_MEDIA_VISUAL_USER_SELECTED",
-        "android.permission.ACCESS_MEDIA_LOCATION",
+      "package": "com.anonymous.medoraapp",
+      "blockedPermissions": [
         "android.permission.READ_MEDIA_IMAGES",
         "android.permission.READ_MEDIA_VIDEO",
-        "android.permission.READ_MEDIA_AUDIO"
+        "android.permission.READ_EXTERNAL_STORAGE",
+        "android.permission.WRITE_EXTERNAL_STORAGE"
       ],
-      "package": "com.anonymous.medoraapp",
       "intentFilters": [
         {
           "action": "VIEW",
@@ -73,8 +65,20 @@
       "favicon": "./assets/images/favicon.png"
     },
     "plugins": [
-      
-      ["@react-native-google-signin/google-signin",
+      [
+        "expo-splash-screen",
+        {
+          "backgroundColor": "#0056FF",
+          "image": "./assets/icons/adaptive-icon.png",
+          "dark": {
+            "image": "./assets/icons/adaptive-icon.png",
+            "backgroundColor": "#0056FF"
+          },
+          "imageWidth": 200
+        }
+      ],
+      [
+        "@react-native-google-signin/google-signin",
         {
           "iosUrlScheme": "com.googleusercontent.apps.434901611189-cgjpvtga7th5nu7gb9pq37759ta0fo22"
         }
@@ -86,19 +90,15 @@
         }
       ],
       "@react-native-community/datetimepicker",
-      [
-        "expo-media-library",
-        {
-          "photosPermission": "Allow Medora to access your media",
-          "savePhotosPermission": "Allow Medora to save files",
-          "isAccessMediaLocationEnabled": true,
-          "granularPermissions": [
-            "photo",
-            "video",
-            "audio"
-          ]
-        }
-      ],
+     [
+  "expo-media-library",
+  {
+    "photosPermission": "Allow Medora to access your media",
+    "savePhotosPermission": "Allow Medora to save files",
+    "isAccessMediaLocationEnabled": true,
+    "granularPermissions": []
+  }
+],
       "expo-mail-composer",
       "expo-font",
       "expo-web-browser",

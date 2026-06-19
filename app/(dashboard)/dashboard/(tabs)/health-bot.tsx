@@ -19,7 +19,7 @@ import {
   View
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-const API_URL = process.env.EXPO_PUBLIC_PRODUCTION_API_CHAT || 'https://medora-backend-sigma.vercel.app/api/chat-working';
+const API_URL = process.env.EXPO_PUBLIC_PRODUCTION_API_CHAT || "https://medora-backend-hlquc845l-subhros-projects-9a263e34.vercel.app/api/chat";
 export default function HealthBotScreen() {
   const { user } = useAuth();
   const { isDark } = useAppTheme();
@@ -160,94 +160,113 @@ export default function HealthBotScreen() {
     }
   };
 
-  const handleSend = useCallback(async () => {
-     console.log('🔍 Environment Check:', {
+ const handleSend = useCallback(async () => {
+  console.log('🔍 Environment Check:', {
     isDev: __DEV__,
     hasExpoPublicKey: !!process.env.EXPO_PUBLIC_OPENAI_API_KEY,
     keyPrefix: process.env.EXPO_PUBLIC_OPENAI_API_KEY?.substring(0, 10),
     fullKeyLength: process.env.EXPO_PUBLIC_OPENAI_API_KEY?.length,
     hasRegularKey: !!process.env.OPENAI_API_KEY
   });
-    if (!input.trim() || !user || isSending) return;
+  
+  if (!input.trim() || !user || isSending) return;
 
-    const userText = input.trim();
-    const userMsg = {
-      id: Date.now().toString(),
-      role: 'user',
-      content: userText,
+  const userText = input.trim();
+  const userMsg = {
+    id: Date.now().toString(),
+    role: 'user',
+    content: userText,
+    timestamp: new Date(),
+  };
+
+  setMessages(prev => [...prev, userMsg]);
+  setInput('');
+  setIsLoading(true);
+  setIsSending(true);
+
+  const assistantId = (Date.now() + 1).toString();
+  setStreamingMessageId(assistantId);
+  
+  setMessages(prev => [
+    ...prev,
+    {
+      id: assistantId,
+      role: 'assistant',
+      content: '',
       timestamp: new Date(),
-    };
+    },
+  ]);
 
-    setMessages(prev => [...prev, userMsg]);
-    setInput('');
-    setIsLoading(true);
-    setIsSending(true);
+  try {
+    const apiMessages = [...messages, userMsg].map(m => ({
+      role: m.role,
+      content: m.content,
+    }));
 
-    const assistantId = (Date.now() + 1).toString();
-    setStreamingMessageId(assistantId);
-    
-    setMessages(prev => [
-      ...prev,
-      {
-        id: assistantId,
-        role: 'assistant',
-        content: '',
-        timestamp: new Date(),
-      },
-    ]);
-
-    try {
-      const apiMessages = [...messages, userMsg].map(m => ({
-        role: m.role,
-        content: m.content,
-      }));
-
-      const response = await fetch(API_URL, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          messages: apiMessages,
-          userId: user.uid,
-          model: 'gpt-4o',
-        }),
-      });
-
-      if (!response.ok) {
-        throw new Error(`API error: ${response.status}`);
-      }
-
-      const data = await response.json();
-      const assistantText = data.text || 'No response';
-
-      setMessages(prev =>
-        prev.map(msg =>
-          msg.id === assistantId
-            ? { ...msg, content: assistantText }
-            : msg
-        )
-      );
-
-      await saveConversation(userText, assistantText, {
+    const response = await fetch(API_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        messages: apiMessages,
+        userId: user.uid,
         model: 'gpt-4o',
-        processingTime: 0,
-        tokens: Math.ceil((userText.length + assistantText.length) / 4),
-      });
+      }),
+    });
 
-    } catch (error) {
-      console.error('Chat error:', error);
-      setMessages(prev =>
-        prev.map(msg =>
-          msg.id === assistantId
-            ? { ...msg, content: 'Sorry, I encountered an error. Please try again.' }
-            : msg
-        )
-      );
-    } finally {
-      setIsLoading(false);
-      setIsSending(false);
-      setStreamingMessageId(null);
+    console.log('Response status:', response.status);
+    console.log('Response headers:', response.headers.get('content-type'));
+
+    const responseText = await response.text();
+    console.log('Raw response:', responseText);
+
+    if (!response.ok) {
+      throw new Error(`API error: ${response.status} - ${responseText}`);
     }
-  }, [input, user, messages, isSending]);
+
+    let assistantText;
+    const contentType = response.headers.get('content-type');
+    
+    // Check if response is JSON or plain text
+    if (contentType?.includes('application/json')) {
+      // Handle JSON response
+      const data = JSON.parse(responseText);
+      assistantText = data.text || 'No response';
+    } else {
+      // Handle plain text response
+      assistantText = responseText || 'No response';
+    }
+
+    console.log('Assistant text:', assistantText);
+
+    setMessages(prev =>
+      prev.map(msg =>
+        msg.id === assistantId
+          ? { ...msg, content: assistantText }
+          : msg
+      )
+    );
+
+    await saveConversation(userText, assistantText, {
+      model: 'gpt-4o',
+      processingTime: 0,
+      tokens: Math.ceil((userText.length + assistantText.length) / 4),
+    });
+
+  } catch (error) {
+    console.error('Chat error:', error);
+    setMessages(prev =>
+      prev.map(msg =>
+        msg.id === assistantId
+          ? { ...msg, content: 'Sorry, I encountered an error. Please try again.' }
+          : msg
+      )
+    );
+  } finally {
+    setIsLoading(false);
+    setIsSending(false);
+    setStreamingMessageId(null);
+  }
+}, [input, user, messages, isSending]);
 
   // Loading dots component with theme support
   const LoadingDots = () => (

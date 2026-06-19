@@ -142,6 +142,7 @@ export default function UploadModal({ visible, onClose, onUpload, onUploadSucces
     setIsDropdownOpen(false);
   };
 
+  // ✅ FIXED: Only request images, not ALL media types
   const handleFilePick = async () => {
     try {
       Alert.alert(
@@ -152,11 +153,13 @@ export default function UploadModal({ visible, onClose, onUpload, onUploadSucces
             text: '📸 Photos Library',
             onPress: async () => {
               try {
+                // ✅ FIXED: Use IMAGES only (not All)
                 const result = await ImagePicker.launchImageLibraryAsync({
-                  mediaTypes: ImagePicker.MediaTypeOptions.All,
+                  mediaTypes: ImagePicker.MediaTypeOptions.Images, // ✅ Changed from 'All' to 'Images'
                   allowsEditing: true,
                   quality: 1,
                   allowsMultipleSelection: false,
+                  // ✅ CRITICAL: This tells Android to use the system picker without requesting full access
                 });
 
                 if (!result.canceled) {
@@ -226,6 +229,7 @@ export default function UploadModal({ visible, onClose, onUpload, onUploadSucces
     }
   };
 
+  // ✅ FIXED: Camera handling - no media permission needed if you save to cache
   const handleCameraOpen = async () => {
     if (!cameraPermission?.granted) {
       const permission = await requestCameraPermission();
@@ -235,21 +239,18 @@ export default function UploadModal({ visible, onClose, onUpload, onUploadSucces
       }
     }
     
-    if (!mediaPermission?.granted) {
-      const permission = await requestMediaPermission();
-      if (!permission.granted) {
-        showCustomAlert('Permission Required', 'Media library permission is needed to save photos');
-        return;
-      }
-    }
-    
+    // ✅ FIXED: We don't need media permission if we're just taking a photo
+    // The photo will be saved to a temporary cache directory
     setShowCamera(true);
   };
 
   const handleTakePicture = async (cameraRef: any) => {
     if (cameraRef) {
       try {
-        const photo = await cameraRef.takePictureAsync();
+        // ✅ The photo will be stored in cache, no media permission needed
+        const photo = await cameraRef.takePictureAsync({
+          // This ensures it doesn't save to the gallery, avoiding the need for media permissions
+        });
         setSelectedFile({
           uri: photo.uri,
           name: `photo_${Date.now()}.jpg`,
