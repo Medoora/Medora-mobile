@@ -181,12 +181,14 @@ export default function SignIn() {
       <View className={`flex-1 ${bgColor}`}>
         <StatusBar style={isDark ? "light" : "dark"} />
         
-        <SafeAreaView className="flex-1">
+        <SafeAreaView className="flex-1 relative">
+      
           <ScrollView 
             showsVerticalScrollIndicator={false}
             contentContainerStyle={{ flexGrow: 1 }}
             keyboardShouldPersistTaps="handled"
           >
+           
             <View className="flex-1 px-6 pt-8 pb-12">
               
               {/* Logo */}

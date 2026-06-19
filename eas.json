@@ -19,13 +19,20 @@
     },
     "production": {
       "env": {
-        "API_URL": "https://medora-backend-sigma.vercel.app/api/chat-working"
+        
+        "API_URL": "https://medora-backend-hlquc845l-subhros-projects-9a263e34.vercel.app/api/chat"
      },
       "autoIncrement": true
     }
   },
+  
   "submit": {
     "production": {
+       "android": {
+        "serviceAccountKeyPath": "./medora-72e33-40a2cd52c959.json",
+        "track": "internal"
+      }
+
     }
   }
 }
